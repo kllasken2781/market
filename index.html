@@ -21,7 +21,8 @@ header h1 span{color:var(--or)}
 .chip.on{background:var(--or);border-color:var(--or);color:#fff}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px}
 .card{border:1px solid var(--ln);border-radius:14px;overflow:hidden;background:#fff;display:flex;flex-direction:column}
-.pic{height:120px;background:var(--or2);display:flex;align-items:center;justify-content:center;font-size:56px;position:relative}
+.pic{height:140px;background:var(--or2);display:flex;align-items:center;justify-content:center;font-size:56px;position:relative}
+.pic img{width:100%;height:100%;object-fit:cover;display:block}
 .badge{position:absolute;top:8px;left:8px;background:var(--bk);color:#fff;font-size:11px;font-weight:700;padding:3px 7px;border-radius:6px}
 .info{padding:10px;display:flex;flex-direction:column;gap:4px;flex:1}
 .name{font-size:14px;font-weight:600;line-height:1.25}
@@ -34,7 +35,8 @@ header h1 span{color:var(--or)}
 .page h2{margin:0 0 14px;font-size:20px}
 .back{border:0;background:none;color:var(--or);font-weight:700;font-size:15px;padding:0 0 12px}
 .row{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--ln)}
-.row .em{font-size:34px;width:52px;height:52px;background:var(--or2);border-radius:12px;display:flex;align-items:center;justify-content:center}
+.row .em{font-size:30px;width:52px;height:52px;background:var(--or2);border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.row .em img{width:100%;height:100%;object-fit:cover}
 .row .mid{flex:1}
 .qty{display:flex;align-items:center;gap:10px}
 .qty button{width:30px;height:30px;border-radius:50%;border:1px solid var(--ln);background:#fff;font-size:18px;font-weight:700}
@@ -43,33 +45,20 @@ label{display:block;font-size:13px;font-weight:600;margin:12px 0 6px;color:var(-
 input,select{width:100%;padding:13px;border:1px solid var(--ln);border-radius:12px;font-size:16px;background:#fff;color:var(--bk)}
 input:focus,select:focus{outline:2px solid var(--or);border-color:var(--or)}
 .btn{width:100%;margin-top:18px;border:0;background:var(--or);color:#fff;border-radius:14px;padding:15px;font-size:16px;font-weight:800}
+.btn:disabled{opacity:.6}
 .box{background:var(--or2);border:1px dashed var(--or);border-radius:14px;padding:14px;margin:12px 0}
 .cardno{font-size:22px;font-weight:800;letter-spacing:1px;margin:6px 0}
 .empty{text-align:center;color:var(--gr);padding:60px 20px}
+.done{text-align:center;padding:50px 20px}
+.done .big{font-size:64px}
 </style>
 </head>
 <body>
 <div id="app"></div>
 
 <script>
-/* ====== SOZLAMALAR: shu yerni o'zingizga moslang ====== */
-const CONFIG = {
-  shop: ["Xitoy", "Market"],
-  card: "8600 0000 0000 0000",
-  cardOwner: "ISM FAMILIYA"
-};
-
-/* Namuna mahsulotlar. Keyinchalik admin paneldan keladi. */
-const PRODUCTS = [
-  {id:1, cat:"kiyim",  emoji:"🧥", uz:"Qishki kurtka",        ru:"Зимняя куртка",        price:289000, old:350000},
-  {id:2, cat:"kiyim",  emoji:"👟", uz:"Sport krossovka",      ru:"Спортивные кроссовки", price:199000},
-  {id:3, cat:"kiyim",  emoji:"🧣", uz:"Issiq sharf",          ru:"Тёплый шарф",          price:59000,  old:79000},
-  {id:4, cat:"elektr", emoji:"🎧", uz:"Simsiz quloqchin",     ru:"Беспроводные наушники",price:129000, old:169000},
-  {id:5, cat:"elektr", emoji:"⌚", uz:"Smart soat",           ru:"Смарт-часы",           price:249000},
-  {id:6, cat:"elektr", emoji:"🔌", uz:"Tez zaryadlovchi",     ru:"Быстрая зарядка",      price:69000},
-  {id:7, cat:"uy",     emoji:"🍳", uz:"Yopishmas tovo",       ru:"Антипригарная сковорода",price:119000,old:149000},
-  {id:8, cat:"uy",     emoji:"💡", uz:"LED lampa",            ru:"LED-лампа",            price:39000}
-];
+/* Do'kon nomi (ikki so'z): shu yerdan o'zgartiring */
+const SHOP = ["Xitoy", "Market"];
 
 const T = {
   uz:{all:"Hammasi",kiyim:"Kiyim",elektr:"Elektronika",uy:"Uy-ro'zg'or",sale:"Chegirmalar",add:"Savatga",cart:"Savat",
@@ -78,14 +67,18 @@ const T = {
       post:"Eng yaqin Uzpost punkti",next:"To'lovga o'tish",pay:"To'lov",
       payInfo:"Quyidagi kartaga to'lovni o'tkazing, so'ng pastdagi tugmani bosing. Bot sizdan chek rasmini so'raydi.",
       confirm:"To'lov qildim, buyurtmani yuborish",fill:"Barcha maydonlarni to'ldiring",sel:"Tanlang",
-      demo:"Demo rejim: buyurtma faqat Telegram ichida yuboriladi."},
+      loading:"Yuklanmoqda...",noprod:"Hozircha mahsulot yo'q",fail:"Yuklab bo'lmadi. Telegram ichida qayta oching.",
+      error:"Xatolik yuz berdi. Qayta urinib ko'ring.",doneT:"Buyurtma qabul qilindi!",
+      doneX:"Botga o'ting va to'lov chekining rasmini yuboring. Tasdiqlangach xabar beramiz.",close:"Botga qaytish"},
   ru:{all:"Все",kiyim:"Одежда",elektr:"Электроника",uy:"Для дома",sale:"Скидки",add:"В корзину",cart:"Корзина",
       empty:"Корзина пуста",total:"Итого",order:"Оформить заказ",back:"← Назад",sum:"сум",
       delivery:"Доставка",name:"Ваше имя",phone:"Номер телефона",region:"Область",city:"Город / район",
       post:"Ближайшее отделение Uzpost",next:"Перейти к оплате",pay:"Оплата",
       payInfo:"Переведите оплату на карту ниже, затем нажмите кнопку. Бот попросит прислать фото чека.",
       confirm:"Я оплатил, отправить заказ",fill:"Заполните все поля",sel:"Выберите",
-      demo:"Демо-режим: заказ отправляется только внутри Telegram."}
+      loading:"Загрузка...",noprod:"Пока нет товаров",fail:"Не удалось загрузить. Откройте заново в Telegram.",
+      error:"Произошла ошибка. Попробуйте ещё раз.",doneT:"Заказ принят!",
+      doneX:"Перейдите в бота и отправьте фото чека об оплате. После подтверждения мы сообщим.",close:"Вернуться в бота"}
 };
 const REGIONS = {
   uz:["Toshkent shahri","Toshkent viloyati","Andijon","Buxoro","Farg'ona","Jizzax","Namangan","Navoiy","Qashqadaryo","Qoraqalpog'iston","Samarqand","Sirdaryo","Surxondaryo","Xorazm"],
@@ -97,13 +90,26 @@ if (tg) { tg.ready(); tg.expand(); }
 
 let lang = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.language_code === "ru") ? "ru" : "uz";
 let view = "shop", cat = "all";
-let cart = {};            // id -> qty
+let products = [], loaded = false, failed = false, cfg = {card:"", owner:""}, busy = false;
+let cart = {};
 let form = {name:"", phone:"+998", region:"", city:"", post:""};
 
 const t = k => T[lang][k];
-const fmt = n => n.toLocaleString("ru-RU").replace(/,/g," ") + " " + t("sum");
-const count = () => Object.values(cart).reduce((a,b)=>a+b,0);
-const total = () => Object.entries(cart).reduce((s,[id,q])=>s+PRODUCTS.find(p=>p.id==id).price*q,0);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = n => Number(n).toLocaleString("ru-RU") + " " + t("sum");
+const P = id => products.find(p => p.id == id);
+const pname = p => lang === "ru" ? p.name_ru : p.name_uz;
+const count = () => Object.entries(cart).filter(([id]) => P(id)).reduce((a,[,q]) => a+q, 0);
+const total = () => Object.entries(cart).reduce((s,[id,q]) => s + (P(id) ? P(id).price*q : 0), 0);
+
+async function load(){
+  try{
+    const [a,b] = await Promise.all([fetch("/api/products"), fetch("/api/config")]);
+    if(!a.ok || !b.ok) throw 0;
+    products = await a.json(); cfg = await b.json(); loaded = true;
+  }catch(e){ failed = true; }
+  render();
+}
 
 function setLang(l){ lang = l; render(); }
 function setCat(c){ cat = c; render(); }
@@ -113,52 +119,62 @@ function chg(id,d){ cart[id] = (cart[id]||0)+d; if(cart[id]<=0) delete cart[id];
 function setF(k,v){ form[k] = v; }
 
 function header(){
-  return `<header><h1>${CONFIG.shop[0]} <span>${CONFIG.shop[1]}</span></h1>
+  return `<header><h1>${esc(SHOP[0])} <span>${esc(SHOP[1])}</span></h1>
   <div class="lang"><button class="${lang==='uz'?'on':''}" onclick="setLang('uz')">UZ</button>
   <button class="${lang==='ru'?'on':''}" onclick="setLang('ru')">RU</button></div></header>`;
 }
 
+function pic(p){ return p.img ? `<img src="${p.img}" loading="lazy" alt="">` : "📦"; }
+
 function shop(){
   const cats = ["all","kiyim","elektr","uy","sale"];
-  const list = PRODUCTS.filter(p => cat==="all" ? true : cat==="sale" ? p.old : p.cat===cat);
   const chips = cats.map(c=>`<button class="chip ${cat===c?'on':''}" onclick="setCat('${c}')">${t(c)}</button>`).join("");
-  const cards = list.map(p=>`
-    <div class="card"><div class="pic">${p.emoji}${p.old?`<span class="badge">-${Math.round((1-p.price/p.old)*100)}%</span>`:""}</div>
-    <div class="info"><div class="name">${p[lang]}</div>
-    <div><span class="price">${fmt(p.price)}</span>${p.old?`<span class="old">${fmt(p.old)}</span>`:""}</div>
-    <button class="add" onclick="add(${p.id})">${t("add")}</button></div></div>`).join("");
+  let body;
+  if(failed) body = `<div class="empty">${t("fail")}</div>`;
+  else if(!loaded) body = `<div class="empty">${t("loading")}</div>`;
+  else {
+    const list = products.filter(p => cat==="all" ? true : cat==="sale" ? (p.old_price && p.old_price>p.price) : p.cat===cat);
+    body = list.length ? `<div class="grid">` + list.map(p=>`
+      <div class="card"><div class="pic">${pic(p)}${p.old_price&&p.old_price>p.price?`<span class="badge">-${Math.round((1-p.price/p.old_price)*100)}%</span>`:""}</div>
+      <div class="info"><div class="name">${esc(pname(p))}</div>
+      <div><span class="price">${fmt(p.price)}</span>${p.old_price&&p.old_price>p.price?`<span class="old">${fmt(p.old_price)}</span>`:""}</div>
+      <button class="add" onclick="add(${p.id})">${t("add")}</button></div></div>`).join("") + `</div>`
+      : `<div class="empty">${t("noprod")}</div>`;
+  }
   const bar = count() ? `<button class="bar" onclick="go('cart')"><span>🛒 ${t("cart")} · ${count()}</span><span>${fmt(total())}</span></button>` : "";
-  return header()+`<div class="cats">${chips}</div><div class="grid">${cards}</div>`+bar;
+  return header()+`<div class="cats">${chips}</div>${body}`+bar;
 }
 
 function cartView(){
-  const rows = Object.entries(cart).map(([id,q])=>{
-    const p = PRODUCTS.find(x=>x.id==id);
-    return `<div class="row"><div class="em">${p.emoji}</div>
-    <div class="mid"><div class="name">${p[lang]}</div><div class="price">${fmt(p.price*q)}</div></div>
+  const rows = Object.entries(cart).filter(([id])=>P(id)).map(([id,q])=>{
+    const p = P(id);
+    return `<div class="row"><div class="em">${pic(p)}</div>
+    <div class="mid"><div class="name">${esc(pname(p))}</div><div class="price">${fmt(p.price*q)}</div></div>
     <div class="qty"><button onclick="chg(${p.id},-1)">−</button><b>${q}</b><button onclick="chg(${p.id},1)">+</button></div></div>`;
   }).join("");
   return header()+`<div class="page"><button class="back" onclick="go('shop')">${t("back")}</button>
   <h2>${t("cart")}</h2>${rows || `<div class="empty">${t("empty")}</div>`}
   <div class="total"><span>${t("total")}</span><span>${fmt(total())}</span></div>
-  <button class="btn" onclick="go('checkout')">${t("order")}</button></div>`;
+  ${rows?`<button class="btn" onclick="go('checkout')">${t("order")}</button>`:""}</div>`;
 }
 
 function checkout(){
   const opts = `<option value="">${t("sel")}</option>` + REGIONS[lang].map((r,i)=>`<option value="${i}" ${String(form.region)===String(i)?'selected':''}>${r}</option>`).join("");
   return header()+`<div class="page"><button class="back" onclick="go('cart')">${t("back")}</button>
   <h2>${t("delivery")}</h2>
-  <label>${t("name")}</label><input value="${form.name}" oninput="setF('name',this.value)">
-  <label>${t("phone")}</label><input type="tel" inputmode="tel" value="${form.phone}" oninput="setF('phone',this.value)">
+  <label>${t("name")}</label><input value="${esc(form.name)}" oninput="setF('name',this.value)">
+  <label>${t("phone")}</label><input type="tel" inputmode="tel" value="${esc(form.phone)}" oninput="setF('phone',this.value)">
   <label>${t("region")}</label><select onchange="setF('region',this.value)">${opts}</select>
-  <label>${t("city")}</label><input value="${form.city}" oninput="setF('city',this.value)">
-  <label>${t("post")}</label><input value="${form.post}" oninput="setF('post',this.value)">
+  <label>${t("city")}</label><input value="${esc(form.city)}" oninput="setF('city',this.value)">
+  <label>${t("post")}</label><input value="${esc(form.post)}" oninput="setF('post',this.value)">
   <button class="btn" onclick="toPay()">${t("next")}</button></div>`;
 }
 
+function alertMsg(s){ (tg && tg.showAlert) ? tg.showAlert(s) : alert(s); }
+
 function toPay(){
   if(!form.name.trim() || form.phone.trim().length<9 || form.region==="" || !form.city.trim() || !form.post.trim()){
-    (tg && tg.showAlert) ? tg.showAlert(t("fill")) : alert(t("fill")); return;
+    alertMsg(t("fill")); return;
   }
   go("pay");
 }
@@ -167,27 +183,40 @@ function pay(){
   return header()+`<div class="page"><button class="back" onclick="go('checkout')">${t("back")}</button>
   <h2>${t("pay")}</h2>
   <div class="total"><span>${t("total")}</span><span>${fmt(total())}</span></div>
-  <div class="box"><div>${t("payInfo")}</div><div class="cardno">${CONFIG.card}</div><div><b>${CONFIG.cardOwner}</b></div></div>
-  <button class="btn" onclick="send()">${t("confirm")}</button></div>`;
+  <div class="box"><div>${t("payInfo")}</div><div class="cardno">${esc(cfg.card)}</div><div><b>${esc(cfg.owner)}</b></div></div>
+  <button class="btn" ${busy?"disabled":""} onclick="send()">${busy?"...":t("confirm")}</button></div>`;
 }
 
-function send(){
-  const data = {
-    lang,
-    name: form.name.trim(), phone: form.phone.trim(),
-    region: REGIONS[lang][form.region], city: form.city.trim(), post: form.post.trim(),
-    items: Object.entries(cart).map(([id,q])=>({id:+id,qty:q})),
-    total: total()
-  };
-  if(tg && tg.sendData){ tg.sendData(JSON.stringify(data)); }
-  else { alert(t("demo") + "\n\n" + JSON.stringify(data,null,2)); }
+async function send(){
+  if(busy) return;
+  busy = true; render();
+  try{
+    const r = await fetch("/api/order", {
+      method:"POST",
+      headers:{"Content-Type":"application/json","X-Init-Data":(tg && tg.initData) || ""},
+      body: JSON.stringify({
+        name:form.name.trim(), phone:form.phone.trim(),
+        region:REGIONS[lang][form.region], city:form.city.trim(), post:form.post.trim(), lang,
+        items:Object.entries(cart).filter(([id])=>P(id)).map(([id,q])=>({id:+id,qty:q}))
+      })
+    });
+    if(!r.ok) throw new Error(r.status);
+    cart = {}; view = "done";
+  }catch(e){ alertMsg(t("error")); }
+  busy = false; render();
+}
+
+function done(){
+  return header()+`<div class="done"><div class="big">✅</div><h2>${t("doneT")}</h2>
+  <p>${t("doneX")}</p><button class="btn" onclick="tg&&tg.close()">${t("close")}</button></div>`;
 }
 
 function render(){
-  const v = {shop,cart:cartView,checkout,pay}[view];
+  const v = {shop,cart:cartView,checkout,pay,done}[view];
   document.getElementById("app").innerHTML = v();
 }
 render();
+load();
 </script>
 </body>
 </html>

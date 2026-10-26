@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Admin panel</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--or:#FF7A00;--or2:#FFF1E3;--bk:#141414;--gr:#6b6b6b;--ln:#ececec;--gn:#1a9b4b;--rd:#d93025}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#fff;color:var(--bk);padding-bottom:90px}
+header{position:sticky;top:0;z-index:10;background:var(--bk);color:#fff;padding:12px 16px;font-size:18px;font-weight:700}
+header span{color:var(--or)}
+.tabs{display:flex;border-bottom:1px solid var(--ln);position:sticky;top:46px;background:#fff;z-index:9}
+.tabs button{flex:1;border:0;background:none;padding:14px;font-size:15px;font-weight:700;color:var(--gr);border-bottom:3px solid transparent}
+.tabs button.on{color:var(--or);border-bottom-color:var(--or)}
+.wrap{padding:12px 16px}
+.item{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--ln)}
+.thumb{width:56px;height:56px;border-radius:12px;background:var(--or2);display:flex;align-items:center;justify-content:center;font-size:26px;overflow:hidden;flex:none}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.mid{flex:1;min-width:0}
+.nm{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub{font-size:13px;color:var(--gr);margin-top:2px}
+.profit{color:var(--gn);font-weight:700}
+.loss{color:var(--rd);font-weight:700}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;background:#eee;color:#555;margin-left:6px}
+.fab{position:fixed;left:12px;right:12px;bottom:12px;background:var(--or);color:#fff;border:0;border-radius:14px;padding:15px;font-size:16px;font-weight:800;box-shadow:0 6px 18px rgba(255,122,0,.35)}
+label{display:block;font-size:13px;font-weight:600;margin:14px 0 6px;color:var(--gr)}
+input,select{width:100%;padding:13px;border:1px solid var(--ln);border-radius:12px;font-size:16px;background:#fff;color:var(--bk)}
+input:focus,select:focus{outline:2px solid var(--or);border-color:var(--or)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.calc{background:var(--or2);border-radius:12px;padding:12px;margin-top:14px;font-weight:700;display:flex;justify-content:space-between}
+.btn{width:100%;margin-top:16px;border:0;background:var(--or);color:#fff;border-radius:14px;padding:15px;font-size:16px;font-weight:800}
+.btn.sec{background:#f3f3f3;color:var(--bk)}
+.btn.del{background:#fdecea;color:var(--rd)}
+.btn:disabled{opacity:.6}
+.back{border:0;background:none;color:var(--or);font-weight:700;font-size:15px;padding:12px 0 0}
+.photo{display:flex;gap:12px;align-items:center;margin-top:6px}
+.photo .thumb{width:84px;height:84px}
+.sw{display:flex;align-items:center;gap:10px;margin-top:16px;font-weight:600}
+.sw input{width:22px;height:22px}
+.msg{text-align:center;color:var(--gr);padding:60px 20px}
+.ord{border:1px solid var(--ln);border-radius:14px;padding:12px;margin:12px 0}
+.ord .top{display:flex;justify-content:space-between;font-weight:800}
+.st{font-size:12px;font-weight:700;padding:3px 8px;border-radius:8px}
+.st.wait_receipt{background:#eee;color:#555}.st.checking{background:#fff3cd;color:#8a6d00}
+.st.paid{background:#d9f2e3;color:var(--gn)}.st.rejected{background:#fdecea;color:var(--rd)}
+.ord p{margin:6px 0 0;font-size:14px;line-height:1.4}
+</style>
+</head>
+<body>
+<header>⚙️ Admin <span>panel</span></header>
+<div id="app"><div class="msg">Yuklanmoqda...</div></div>
+
+<script>
+const tg = window.Telegram && window.Telegram.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
+
+const CATS = {kiyim:"Kiyim", elektr:"Elektronika", uy:"Uy-ro'zg'or"};
+const STATUS = {wait_receipt:"Chek kutilmoqda", checking:"Tekshirilmoqda", paid:"To'langan", rejected:"Rad etilgan"};
+let tab = "products", list = [], ords = [], f = null, saving = false, denied = "";
+
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money = n => Number(n||0).toLocaleString("ru-RU") + " so'm";
+
+async function api(path, method="GET", body){
+  const r = await fetch(path, {
+    method,
+    headers:{"Content-Type":"application/json","X-Init-Data":(tg && tg.initData) || ""},
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if(!r.ok){
+    let d = ""; try{ d = (await r.json()).detail }catch(e){}
+    const err = new Error(d || r.status); err.status = r.status; throw err;
+  }
+  return r.json();
+}
+
+async function loadAll(){
+  try{
+    [list, ords] = await Promise.all([api("/api/admin/products"), api("/api/admin/orders")]);
+  }catch(e){
+    denied = e.status === 403 ? "Sizda ruxsat yo'q." : (e.status === 401 ? "Admin panelni botdagi /admin buyrug'i orqali, Telegram ichida oching." : "Xatolik: " + e.message);
+  }
+  render();
+}
+
+function alertMsg(s){ (tg && tg.showAlert) ? tg.showAlert(s) : alert(s); }
+function setTab(t){ tab = t; render(); }
+
+function listView(){
+  const tabs = `<div class="tabs"><button class="${tab==='products'?'on':''}" onclick="setTab('products')">Mahsulotlar (${list.length})</button>
+  <button class="${tab==='orders'?'on':''}" onclick="setTab('orders')">Buyurtmalar (${ords.length})</button></div>`;
+  if(tab === "orders"){
+    const rows = ords.map(o=>`<div class="ord"><div class="top"><span>#${o.id}</span><span class="st ${o.status}">${STATUS[o.status]||o.status}</span></div>
+      <p>${o.items.map(i=>esc(i.name)+" × "+i.qty).join("<br>")}</p>
+      <p><b>${money(o.total)}</b></p>
+      <p>👤 ${esc(o.name)} · ${esc(o.phone)}<br>📍 ${esc(o.region)}, ${esc(o.city)}<br>📮 ${esc(o.post)}</p>
+      <p style="color:#888;font-size:12px">${new Date(o.created*1000).toLocaleString("ru-RU",{timeZone:"Asia/Tashkent"})}</p></div>`).join("");
+    return tabs + `<div class="wrap">${rows || '<div class="msg">Hali buyurtma yo\'q</div>'}</div>`;
+  }
+  const rows = list.map(p=>`<div class="item" onclick="edit(${p.id})">
+    <div class="thumb">${p.img?`<img src="${p.img}" alt="">`:"📦"}</div>
+    <div class="mid"><div class="nm">${esc(p.name_uz)}${p.active?"":'<span class="tag">yashirin</span>'}</div>
+    <div class="sub">${CATS[p.cat]} · sotuv ${money(p.price)}</div>
+    <div class="sub">foyda: <span class="${p.profit>=0?'profit':'loss'}">${money(p.profit)}</span></div></div></div>`).join("");
+  return tabs + `<div class="wrap">${rows || '<div class="msg">Hali mahsulot yo\'q. Pastdagi tugma bilan qo\'shing.</div>'}</div>
+    <button class="fab" onclick="edit(0)">+ Mahsulot qo'shish</button>`;
+}
+
+function edit(id){
+  const p = list.find(x=>x.id===id);
+  f = p ? {id:p.id, name_uz:p.name_uz, name_ru:p.name_ru, cat:p.cat, cost:p.cost, price:p.price,
+           old_price:p.old_price||"", active:p.active, img:p.img, image:undefined}
+        : {id:0, name_uz:"", name_ru:"", cat:"kiyim", cost:"", price:"", old_price:"", active:true, img:null, image:undefined};
+  window.scrollTo(0,0); render();
+}
+
+function formView(){
+  const co = Object.entries(CATS).map(([k,v])=>`<option value="${k}" ${f.cat===k?"selected":""}>${v}</option>`).join("");
+  return `<div class="wrap"><button class="back" onclick="f=null;render()">← Orqaga</button>
+  <h2 style="margin:10px 0 0">${f.id?"Tahrirlash":"Yangi mahsulot"}</h2>
+  <label>Rasm</label>
+  <div class="photo"><div class="thumb" id="pv">${f.img?`<img src="${f.img}" alt="">`:"📦"}</div>
+  <div><label class="btn sec" style="margin:0;padding:11px 16px;display:inline-block;color:var(--bk)">Rasm tanlash
+  <input type="file" accept="image/*" style="display:none" onchange="pickImg(this)"></label>
+  ${f.img?`<div><button class="back" onclick="rmImg()">Rasmni o'chirish</button></div>`:""}</div></div>
+  <label>Nomi (o'zbekcha)</label><input value="${esc(f.name_uz)}" oninput="f.name_uz=this.value">
+  <label>Nomi (ruscha, bo'sh qolsa o'zbekcha ishlatiladi)</label><input value="${esc(f.name_ru)}" oninput="f.name_ru=this.value">
+  <label>Kategoriya</label><select onchange="f.cat=this.value">${co}</select>
+  <div class="two"><div><label>Pinduoduo narxi (so'm)</label><input type="number" inputmode="numeric" value="${f.cost}" oninput="f.cost=this.value;calc()"></div>
+  <div><label>Sotuv narxi (so'm)</label><input type="number" inputmode="numeric" value="${f.price}" oninput="f.price=this.value;calc()"></div></div>
+  <div class="calc"><span>Foyda</span><span id="pf"></span></div>
+  <label>Eski narx (chegirma uchun, ixtiyoriy)</label><input type="number" inputmode="numeric" value="${f.old_price}" oninput="f.old_price=this.value">
+  <div class="sw"><input type="checkbox" ${f.active?"checked":""} onchange="f.active=this.checked"> Do'konda ko'rsatish</div>
+  <button class="btn" id="sv" onclick="save()">Saqlash</button>
+  ${f.id?`<button class="btn del" onclick="del()">O'chirish</button>`:""}</div>`;
+}
+
+function calc(){
+  const el = document.getElementById("pf"); if(!el) return;
+  const v = (+f.price||0) - (+f.cost||0);
+  el.textContent = money(v); el.className = v>=0 ? "profit" : "loss";
+}
+
+function compress(file){
+  return new Promise((res, rej)=>{
+    const rd = new FileReader();
+    rd.onload = ()=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const M = 800, k = Math.min(1, M/Math.max(img.width, img.height));
+        const w = Math.round(img.width*k), h = Math.round(img.height*k);
+        const c = document.createElement("canvas"); c.width = w; c.height = h;
+        c.getContext("2d").drawImage(img, 0, 0, w, h);
+        res(c.toDataURL("image/jpeg", 0.78));
+      };
+      img.onerror = rej; img.src = rd.result;
+    };
+    rd.onerror = rej; rd.readAsDataURL(file);
+  });
+}
+
+async function pickImg(inp){
+  const file = inp.files[0]; if(!file) return;
+  try{
+    const d = await compress(file);
+    f.image = d; f.img = d;
+    document.getElementById("pv").innerHTML = `<img src="${d}" alt="">`;
+  }catch(e){ alertMsg("Rasmni o'qib bo'lmadi"); }
+}
+function rmImg(){ f.image = ""; f.img = null; render(); }
+
+async function save(){
+  if(saving) return;
+  if(!f.name_uz.trim()){ alertMsg("Nomini kiriting"); return; }
+  if(!(+f.price > 0)){ alertMsg("Sotuv narxini kiriting"); return; }
+  saving = true; const b = document.getElementById("sv"); if(b){ b.disabled = true; b.textContent = "Saqlanmoqda..."; }
+  const body = {name_uz:f.name_uz.trim(), name_ru:f.name_ru.trim(), cat:f.cat, cost:+f.cost||0, price:+f.price,
+                old_price:+f.old_price||null, active:f.active};
+  if(f.image !== undefined) body.image = f.image;
+  try{
+    if(f.id) await api("/api/admin/products/"+f.id, "PUT", body);
+    else await api("/api/admin/products", "POST", body);
+    f = null; list = await api("/api/admin/products");
+  }catch(e){ alertMsg("Xatolik: " + e.message); }
+  saving = false; render();
+}
+
+async function del(){
+  const go = async ()=>{
+    try{ await api("/api/admin/products/"+f.id, "DELETE"); f = null; list = await api("/api/admin/products"); render(); }
+    catch(e){ alertMsg("Xatolik: " + e.message); }
+  };
+  if(tg && tg.showConfirm) tg.showConfirm("Mahsulot o'chirilsinmi?", ok=>{ if(ok) go(); });
+  else if(confirm("Mahsulot o'chirilsinmi?")) go();
+}
+
+function render(){
+  const app = document.getElementById("app");
+  if(denied){ app.innerHTML = `<div class="msg">${esc(denied)}</div>`; return; }
+  app.innerHTML = f ? formView() : listView();
+  if(f) calc();
+}
+loadAll();
+</script>
+</body>
+</html>
