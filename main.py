@@ -40,6 +40,33 @@ if DB_URL.startswith("postgresql://"):
 CATS = {"kiyim", "elektr", "uy"}
 MAX_IMAGES = 6
 
+
+def parse_support(raw):
+    """SUPPORT = "Elyor=@username, Sherik=@username2" """
+    out = []
+    for part in re.split(r"[;,\n]+", raw or ""):
+        part = part.strip()
+        if not part:
+            continue
+        name, user = (part.split("=", 1) if "=" in part else ("", part))
+        user = user.strip().replace("https://t.me/", "").lstrip("@")
+        if re.fullmatch(r"[A-Za-z0-9_]{4,32}", user):
+            out.append({"name": name.strip() or "@" + user, "user": user})
+    return out
+
+
+SUPPORT = parse_support(os.environ.get("SUPPORT", ""))
+
+# Yetkazib berish bosqichlari (admin tugmalari). Yangi bosqich qo'shish: shu ro'yxatga bitta qator qo'shing.
+STAGES = [
+    {"k": "china",    "uz": "Buyurtmangiz Xitoyda",                         "ru": "Ваш заказ в Китае"},
+    {"k": "cn_wh",    "uz": "Buyurtmangiz Xitoydagi omborga yetib keldi",   "ru": "Ваш заказ прибыл на склад в Китае"},
+    {"k": "to_uz",    "uz": "Buyurtmangiz O'zbekistonga yuborildi",         "ru": "Ваш заказ отправлен в Узбекистан"},
+    {"k": "tashkent", "uz": "Buyurtmangiz Toshkentga yetib keldi",          "ru": "Ваш заказ прибыл в Ташкент"},
+    {"k": "uzpost",   "uz": "Buyurtmangiz Uzpost orqali sizga jo'natildi",  "ru": "Ваш заказ отправлен вам через Uzpost"},
+    {"k": "pickup",   "uz": "Buyurtmangizni olib ketishingiz mumkin",       "ru": "Вы можете забрать ваш заказ"},
+]
+
 # =====================  BAZA  =====================
 engine = create_engine(
     DB_URL,
@@ -90,6 +117,31 @@ orders = Table(
     Column("status", String(20)),     # wait_receipt / checking / paid / rejected
     Column("lang", String(2)),
     Column("created", Integer),
+    Column("ship", String(30)),       # yetkazib berish bosqichi (STAGES[].k)
+    Column("ship_time", Integer),
+)
+
+profiles = Table(
+    "profiles", md,
+    Column("user_id", BigInteger, primary_key=True, autoincrement=False),
+    Column("name", String(200)),
+    Column("phone", String(50)),
+    Column("region", String(20)),     # viloyat tartib raqami (0..13)
+    Column("city", String(200)),
+    Column("post", String(300)),
+    Column("lang", String(2)),
+    Column("theme", String(10)),
+    Column("updated", Integer),
+)
+
+cart_items = Table(
+    "cart_items", md,
+    Column("id", Integer, primary_key=True),
+    Column("user_id", BigInteger, nullable=False, index=True),
+    Column("product_id", Integer, nullable=False),
+    Column("size", String(100), nullable=False, default=""),
+    Column("color", String(100), nullable=False, default=""),
+    Column("qty", Integer, nullable=False, default=1),
 )
 
 PRODUCT_COLS = [c for c in products.c if c.name != "image"]
@@ -103,6 +155,12 @@ def migrate():
         for name in ("desc_uz", "desc_ru", "sizes", "colors"):
             if name not in cols:
                 c.execute(sql_text(f"ALTER TABLE products ADD COLUMN {name} TEXT"))
+    ocols = {c["name"] for c in inspect(engine).get_columns("orders")}
+    with engine.begin() as c:
+        if "ship" not in ocols:
+            c.execute(sql_text("ALTER TABLE orders ADD COLUMN ship VARCHAR(30)"))
+        if "ship_time" not in ocols:
+            c.execute(sql_text("ALTER TABLE orders ADD COLUMN ship_time INTEGER"))
     with engine.begin() as c:
         rows = c.execute(select(products.c.id, products.c.image).where(products.c.image.isnot(None))).all()
         for pid, img in rows:
@@ -214,18 +272,25 @@ def h_photo(m):
     safe_send(m.chat.id, M[row["lang"] or "uz"]["checking"].format(n=n))
 
 
+def apply_pay(oid, status):
+    """To'lov holatini o'zgartiradi va mijozga xabar yuboradi. Buyurtma topilmasa None."""
+    with engine.begin() as cn:
+        row = cn.execute(select(orders).where(orders.c.id == oid)).mappings().first()
+        if not row:
+            return None
+        cn.execute(update(orders).where(orders.c.id == oid).values(status=status))
+    sent = safe_send(row["user_id"], M[row["lang"] or "uz"][status].format(n=oid))
+    return bool(sent)
+
+
 @bot.callback_query_handler(func=lambda c: bool(c.data) and c.data[:3] in ("ok:", "no:"))
 def h_cb(c):
     if c.from_user.id not in ADMIN_IDS:
         return bot.answer_callback_query(c.id, "Ruxsat yo'q")
     act, oid = c.data.split(":")
-    oid = int(oid)
     status = "paid" if act == "ok" else "rejected"
-    with engine.begin() as cn:
-        row = cn.execute(select(orders).where(orders.c.id == oid)).mappings().first()
-        if not row:
-            return bot.answer_callback_query(c.id, "Topilmadi")
-        cn.execute(update(orders).where(orders.c.id == oid).values(status=status))
+    if apply_pay(int(oid), status) is None:
+        return bot.answer_callback_query(c.id, "Topilmadi")
     label = "✅ To'lov tasdiqlandi" if status == "paid" else "❌ Rad etildi"
     try:
         bot.edit_message_caption(
@@ -235,7 +300,6 @@ def h_cb(c):
     except Exception as e:
         print("edit xato:", e)
     bot.answer_callback_query(c.id, label)
-    safe_send(row["user_id"], M[row["lang"] or "uz"][status].format(n=oid))
 
 
 # =====================  TELEGRAM AUTH  =====================
@@ -298,10 +362,40 @@ class OrderIn(BaseModel):
     name: str
     phone: str
     region: str
+    region_i: str = ""
     city: str
     post: str
     lang: str = "uz"
     items: List[OrderItem]
+
+
+class ProfileIn(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    region: Optional[str] = None
+    city: Optional[str] = None
+    post: Optional[str] = None
+    lang: Optional[str] = None
+    theme: Optional[str] = None
+
+
+class CartLine(BaseModel):
+    id: int
+    qty: int
+    size: str = ""
+    color: str = ""
+
+
+class CartIn(BaseModel):
+    items: List[CartLine]
+
+
+class ShipIn(BaseModel):
+    stage: str
+
+
+class PayIn(BaseModel):
+    ok: bool
 
 
 def split_opts(s):
@@ -421,7 +515,7 @@ async def webhook(secret: str, request: Request):
 # ---------- ommaviy ----------
 @app.get("/api/config")
 def api_config():
-    return {"card": CARD, "owner": CARD_OWNER}
+    return {"card": CARD, "owner": CARD_OWNER, "support": SUPPORT, "stages": STAGES}
 
 
 @app.get("/api/products")
@@ -496,7 +590,8 @@ def api_order(o: OrderIn, x_init_data: str = Header("")):
             color = ""
         var = ", ".join(x for x in (size, color) if x)
         name = p["name_uz"] + (f" ({var})" if var else "")
-        items.append({"id": i.id, "name": name, "qty": i.qty, "price": p["price"]})
+        name_ru = (p["name_ru"] or p["name_uz"]) + (f" ({var})" if var else "")
+        items.append({"id": i.id, "name": name, "name_ru": name_ru, "qty": i.qty, "price": p["price"]})
         total += p["price"] * i.qty
     lang = "ru" if o.lang == "ru" else "uz"
     username = user.get("username")
@@ -508,6 +603,9 @@ def api_order(o: OrderIn, x_init_data: str = Header("")):
             status="wait_receipt", lang=lang, created=int(time.time()),
         ))
         n = r.inserted_primary_key[0]
+        c.execute(delete(cart_items).where(cart_items.c.user_id == user["id"]))   # savat tozalanadi
+    upsert_profile(user["id"], name=o.name[:200], phone=o.phone[:50], region=o.region_i[:20],
+                   city=o.city[:200], post=o.post[:300])
 
     lines = "\n".join(f"• {i['name']} × {i['qty']}" for i in items)
     who = f"@{username}" if username else f"id {user['id']}"
@@ -520,6 +618,99 @@ def api_order(o: OrderIn, x_init_data: str = Header("")):
         safe_send(t, admin_text)
     safe_send(user["id"], M[lang]["got"].format(n=n, items=lines, total=som(total), card=CARD, owner=CARD_OWNER))
     return {"ok": True, "id": n}
+
+
+# ---------- mijoz (har bir mijoz faqat o'z ma'lumotini ko'radi) ----------
+def upsert_profile(uid, **vals):
+    vals = {k: v for k, v in vals.items() if v is not None}
+    vals["updated"] = int(time.time())
+    with engine.begin() as c:
+        has = c.execute(select(profiles.c.user_id).where(profiles.c.user_id == uid)).first()
+        if has:
+            c.execute(update(profiles).where(profiles.c.user_id == uid).values(**vals))
+        else:
+            c.execute(insert(profiles).values(user_id=uid, **vals))
+
+
+@app.get("/api/profile")
+def api_profile_get(x_init_data: str = Header("")):
+    u = check_init(x_init_data)
+    with engine.connect() as c:
+        r = c.execute(select(profiles).where(profiles.c.user_id == u["id"])).mappings().first()
+    d = {"name": "", "phone": "", "region": "", "city": "", "post": "", "lang": "", "theme": ""}
+    if r:
+        for k in d:
+            d[k] = r[k] or ""
+    if not d["name"]:
+        d["name"] = " ".join(x for x in (u.get("first_name"), u.get("last_name")) if x)
+    d["tg_name"] = " ".join(x for x in (u.get("first_name"), u.get("last_name")) if x)
+    d["tg_user"] = u.get("username") or ""
+    return d
+
+
+@app.put("/api/profile")
+def api_profile_put(p: ProfileIn, x_init_data: str = Header("")):
+    u = check_init(x_init_data)
+    vals = dict(
+        name=None if p.name is None else p.name.strip()[:200],
+        phone=None if p.phone is None else p.phone.strip()[:50],
+        region=None if p.region is None else p.region.strip()[:20],
+        city=None if p.city is None else p.city.strip()[:200],
+        post=None if p.post is None else p.post.strip()[:300],
+        lang=p.lang if p.lang in ("uz", "ru") else None,
+        theme=p.theme if p.theme in ("light", "dark") else None,
+    )
+    upsert_profile(u["id"], **vals)
+    return {"ok": True}
+
+
+@app.get("/api/cart")
+def api_cart_get(x_init_data: str = Header("")):
+    u = check_init(x_init_data)
+    with engine.connect() as c:
+        rows = c.execute(select(cart_items).where(cart_items.c.user_id == u["id"]).order_by(cart_items.c.id)).mappings().all()
+    return [{"id": r["product_id"], "size": r["size"] or "", "color": r["color"] or "", "qty": r["qty"]} for r in rows]
+
+
+@app.put("/api/cart")
+def api_cart_put(cart: CartIn, x_init_data: str = Header("")):
+    u = check_init(x_init_data)
+    merged = {}
+    for l in cart.items[:100]:
+        key = (l.id, l.size.strip()[:100], l.color.strip()[:100])
+        merged[key] = min(99, merged.get(key, 0) + max(1, l.qty))
+    with engine.begin() as c:
+        ok_ids = set(c.execute(select(products.c.id).where(products.c.id.in_([k[0] for k in merged] or [0]))).scalars())
+        c.execute(delete(cart_items).where(cart_items.c.user_id == u["id"]))
+        for (pid, size, color), qty in list(merged.items())[:50]:
+            if pid in ok_ids:
+                c.execute(insert(cart_items).values(user_id=u["id"], product_id=pid, size=size, color=color, qty=qty))
+    return {"ok": True}
+
+
+@app.get("/api/my/orders")
+def api_my_orders(x_init_data: str = Header("")):
+    u = check_init(x_init_data)
+    with engine.connect() as c:
+        rows = c.execute(
+            select(orders).where(orders.c.user_id == u["id"]).order_by(desc(orders.c.id)).limit(50)
+        ).mappings().all()
+        parsed = [json.loads(r["items"] or "[]") for r in rows]
+        pids = {i.get("id") for items in parsed for i in items if i.get("id")}
+        imgs = {}
+        if pids:
+            for pr in c.execute(select(products.c.id, products.c.has_img, products.c.updated).where(products.c.id.in_(pids))):
+                if pr[1]:
+                    imgs[pr[0]] = f"/img/{pr[0]}?v={pr[2]}"
+    out = []
+    for r, items in zip(rows, parsed):
+        out.append({
+            "id": r["id"], "created": r["created"], "total": r["total"],
+            "status": r["status"], "ship": r["ship"] or "", "ship_time": r["ship_time"] or 0,
+            "items": [{"name": i.get("name", ""), "name_ru": i.get("name_ru") or i.get("name", ""),
+                       "qty": i.get("qty", 1), "price": i.get("price", 0), "img": imgs.get(i.get("id"))} for i in items],
+        })
+    return out
 
 
 # ---------- admin ----------
@@ -598,3 +789,30 @@ def adm_orders(x_init_data: str = Header("")):
         d["items"] = json.loads(d["items"] or "[]")
         out.append(d)
     return out
+
+
+@app.post("/api/admin/orders/{oid}/ship")
+def adm_ship(oid: int, s: ShipIn, x_init_data: str = Header("")):
+    """Yetkazib berish bosqichini belgilaydi va aynan shu buyurtma egasiga xabar yuboradi."""
+    require_admin(x_init_data)
+    st = next((x for x in STAGES if x["k"] == s.stage), None)
+    if not st:
+        raise HTTPException(400, "Bosqich noto'g'ri")
+    with engine.begin() as c:
+        row = c.execute(select(orders).where(orders.c.id == oid)).mappings().first()
+        if not row:
+            raise HTTPException(404)
+        c.execute(update(orders).where(orders.c.id == oid).values(ship=st["k"], ship_time=int(time.time())))
+    lang = row["lang"] or "uz"
+    head = "📦 Buyurtma" if lang == "uz" else "📦 Заказ"
+    sent = safe_send(row["user_id"], f"{head} #{oid}\n\n{st[lang]}")
+    return {"ok": True, "sent": bool(sent)}
+
+
+@app.post("/api/admin/orders/{oid}/pay")
+def adm_pay(oid: int, p: PayIn, x_init_data: str = Header("")):
+    require_admin(x_init_data)
+    sent = apply_pay(oid, "paid" if p.ok else "rejected")
+    if sent is None:
+        raise HTTPException(404)
+    return {"ok": True, "sent": sent}

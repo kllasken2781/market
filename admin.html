@@ -53,6 +53,13 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--or);border-color
 .st.wait_receipt{background:#eee;color:#555}.st.checking{background:#fff3cd;color:#8a6d00}
 .st.paid{background:#d9f2e3;color:var(--gn)}.st.rejected{background:#fdecea;color:var(--rd)}
 .ord p{margin:6px 0 0;font-size:14px;line-height:1.4}
+.st.ship{background:var(--or2);color:var(--or)}
+.stg{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.stg button{border:1px solid var(--ln);background:#fff;border-radius:10px;padding:10px;font-size:14px;font-weight:600;text-align:left;color:var(--bk)}
+.stg button.on{background:var(--or);border-color:var(--or);color:#fff}
+.stg button.pay{background:#eef9f1;border-color:#bfe5cc}
+.stg button.no{background:#fdecea;border-color:#f3c3be}
+.stl{font-size:12px;font-weight:700;color:var(--gr);margin-top:12px}
 </style>
 </head>
 <body>
@@ -66,7 +73,7 @@ if (tg) { tg.ready(); tg.expand(); }
 const CATS = {kiyim:"Kiyim", elektr:"Elektronika", uy:"Uy-ro'zg'or"};
 const STATUS = {wait_receipt:"Chek kutilmoqda", checking:"Tekshirilmoqda", paid:"To'langan", rejected:"Rad etilgan"};
 const MAXIMG = 6;
-let tab = "products", list = [], ords = [], f = null, saving = false, denied = "", opening = false;
+let tab = "products", list = [], ords = [], stages = [], f = null, saving = false, denied = "", opening = false;
 
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const money = n => Number(n||0).toLocaleString("ru-RU") + " so'm";
@@ -87,6 +94,7 @@ async function api(path, method="GET", body){
 async function loadAll(){
   try{
     [list, ords] = await Promise.all([api("/api/admin/products"), api("/api/admin/orders")]);
+    try{ stages = (await (await fetch("/api/config")).json()).stages || []; }catch(e){}
   }catch(e){
     denied = e.status === 403 ? "Sizda ruxsat yo'q." : (e.status === 401 ? "Admin panelni botdagi /admin buyrug'i orqali, Telegram ichida oching." : "Xatolik: " + e.message);
   }
@@ -96,15 +104,46 @@ async function loadAll(){
 function alertMsg(s){ (tg && tg.showAlert) ? tg.showAlert(s) : alert(s); }
 function setTab(t){ tab = t; render(); }
 
+function stageName(o){
+  if(o.ship){ const s = stages.find(x=>x.k===o.ship); return esc(s ? s.uz : o.ship); }
+  return STATUS[o.status]||o.status;
+}
+function ask(msg, fn){
+  if(tg && tg.showConfirm) tg.showConfirm(msg, ok=>{ if(ok) fn(); });
+  else if(confirm(msg)) fn();
+}
+async function afterOrderChange(r){
+  ords = await api("/api/admin/orders"); render();
+  if(r && r.sent === false) alertMsg("Holat saqlandi, lekin mijozga xabar bormadi (mijoz botni /start qilmagan bo'lishi mumkin).");
+}
+function setShip(id, k){
+  const s = stages.find(x=>x.k===k);
+  ask("#"+id+" buyurtma egasiga yuborilsinmi?\n\n"+(s?s.uz:k), async ()=>{
+    try{ await afterOrderChange(await api("/api/admin/orders/"+id+"/ship","POST",{stage:k})); }
+    catch(e){ alertMsg("Xatolik: "+e.message); }
+  });
+}
+function setPay(id, ok){
+  ask(ok ? "To'lov tasdiqlansinmi?" : "To'lov rad etilsinmi?", async ()=>{
+    try{ await afterOrderChange(await api("/api/admin/orders/"+id+"/pay","POST",{ok})); }
+    catch(e){ alertMsg("Xatolik: "+e.message); }
+  });
+}
+
 function listView(){
   const tabs = `<div class="tabs"><button class="${tab==='products'?'on':''}" onclick="setTab('products')">Mahsulotlar (${list.length})</button>
   <button class="${tab==='orders'?'on':''}" onclick="setTab('orders')">Buyurtmalar (${ords.length})</button></div>`;
   if(tab === "orders"){
-    const rows = ords.map(o=>`<div class="ord"><div class="top"><span>#${o.id}</span><span class="st ${o.status}">${STATUS[o.status]||o.status}</span></div>
+    const rows = ords.map(o=>`<div class="ord"><div class="top"><span>#${o.id}</span><span class="st ${o.ship?'ship':o.status}">${stageName(o)}</span></div>
       <p>${o.items.map(i=>esc(i.name)+" × "+i.qty).join("<br>")}</p>
       <p><b>${money(o.total)}</b></p>
       <p>👤 ${esc(o.name)} · ${esc(o.phone)}<br>📍 ${esc(o.region)}, ${esc(o.city)}<br>📮 ${esc(o.post)}</p>
-      <p style="color:#888;font-size:12px">${new Date(o.created*1000).toLocaleString("ru-RU",{timeZone:"Asia/Tashkent"})}</p></div>`).join("");
+      <p style="color:#888;font-size:12px">${new Date(o.created*1000).toLocaleString("ru-RU",{timeZone:"Asia/Tashkent"})}</p>
+      <div class="stl">TO'LOV: <span class="st ${o.status}">${STATUS[o.status]||o.status}</span></div>
+      <div class="stg"><button class="pay" onclick="setPay(${o.id},true)">✅ To'lovni tasdiqlash</button>
+      <button class="no" onclick="setPay(${o.id},false)">❌ To'lovni rad etish</button></div>
+      <div class="stl">YETKAZISH HOLATI (bossangiz mijozga xabar boradi):</div>
+      <div class="stg">${stages.map(s=>`<button class="${o.ship===s.k?'on':''}" onclick="setShip(${o.id},'${s.k}')">${esc(s.uz)}</button>`).join("")}</div></div>`).join("");
     return tabs + `<div class="wrap">${rows || '<div class="msg">Hali buyurtma yo\'q</div>'}</div>`;
   }
   const rows = list.map(p=>`<div class="item" onclick="edit(${p.id})">

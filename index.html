@@ -3,35 +3,50 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Xitoy Market</title>
+<title>Lemmon Shop</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-:root{--or:#FF7A00;--or2:#FFF1E3;--bk:#141414;--gr:#6b6b6b;--ln:#ececec;--bg:#fff}
+:root{--or:#FF7A00;--or2:#FFF1E3;--tx:#141414;--gr:#6b6b6b;--ln:#ececec;--bg:#fff;--card:#fff;--btn:#141414;--btnt:#fff;--ylw:#F5B800;--sh:rgba(0,0,0,.06)}
+:root[data-theme=dark]{--or2:#2b1d0f;--tx:#f1f1f1;--gr:#a3a3a3;--ln:#2e2e2e;--bg:#121212;--card:#1b1b1b;--btn:#2d2d2d;--btnt:#fff;--sh:rgba(0,0,0,.4)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--bk);padding-bottom:84px}
-header{position:sticky;top:0;z-index:10;background:var(--bk);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
-header h1{margin:0;font-size:18px;letter-spacing:.3px}
-header h1 span{color:var(--or)}
-.lang{display:flex;gap:6px}
-.lang button{border:1px solid #444;background:transparent;color:#fff;border-radius:8px;padding:5px 10px;font-weight:600}
+html{background:var(--bg)}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--tx);padding-bottom:90px}
+header{position:sticky;top:0;z-index:10;height:54px;background:var(--bg);border-bottom:1px solid var(--ln);padding:0 14px;display:flex;align-items:center;justify-content:space-between}
+header h1{margin:0;font-size:21px;font-weight:900;letter-spacing:.2px}
+header h1 .l{color:var(--ylw)}
+header h1 .s{color:var(--tx)}
+.hr{display:flex;gap:6px;align-items:center}
+.lang{display:flex;gap:4px}
+.lang button,.ib{border:1px solid var(--ln);background:var(--card);color:var(--tx);border-radius:10px;height:34px;min-width:34px;padding:0 9px;font-weight:700;font-size:13px;position:relative}
 .lang button.on{background:var(--or);border-color:var(--or);color:#fff}
-.cats{display:flex;gap:8px;overflow-x:auto;padding:12px 16px;scrollbar-width:none;position:sticky;top:50px;background:#fff;z-index:9;border-bottom:1px solid var(--ln)}
+.ib{font-size:16px}
+.ib .n{position:absolute;top:-6px;right:-6px;background:var(--or);color:#fff;border-radius:10px;font-size:10px;min-width:17px;height:17px;line-height:17px;padding:0 4px;text-align:center}
+.sub{position:sticky;top:54px;z-index:9;background:var(--bg);border-bottom:1px solid var(--ln)}
+.search{padding:10px 14px 0;position:relative}
+.search input{padding-left:40px;border-radius:24px;background:var(--card)}
+.search .mg{position:absolute;left:28px;top:21px;font-size:15px;opacity:.6}
+.cats{display:flex;gap:8px;overflow-x:auto;padding:10px 14px;scrollbar-width:none}
 .cats::-webkit-scrollbar{display:none}
-.chip{flex:none;border:1px solid var(--ln);background:#fff;border-radius:20px;padding:8px 16px;font-size:14px;font-weight:600;color:var(--bk)}
+.chip{flex:none;border:1px solid var(--ln);background:var(--card);border-radius:20px;padding:8px 16px;font-size:14px;font-weight:600;color:var(--tx)}
 .chip.on{background:var(--or);border-color:var(--or);color:#fff}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px}
-.card{border:1px solid var(--ln);border-radius:14px;overflow:hidden;background:#fff;display:flex;flex-direction:column}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px}
+.card{border:1px solid var(--ln);border-radius:14px;overflow:hidden;background:var(--card);display:flex;flex-direction:column}
 .pic{height:140px;background:var(--or2);display:flex;align-items:center;justify-content:center;font-size:56px;position:relative}
 .pic img{width:100%;height:100%;object-fit:cover;display:block}
-.badge{position:absolute;top:8px;left:8px;background:var(--bk);color:#fff;font-size:11px;font-weight:700;padding:3px 7px;border-radius:6px}
+.badge{position:absolute;top:8px;left:8px;background:#141414;color:#fff;font-size:11px;font-weight:700;padding:3px 7px;border-radius:6px}
 .info{padding:10px;display:flex;flex-direction:column;gap:4px;flex:1}
 .name{font-size:14px;font-weight:600;line-height:1.25}
 .price{font-size:15px;font-weight:800;color:var(--or)}
 .old{font-size:12px;color:var(--gr);text-decoration:line-through;margin-left:6px;font-weight:400}
-.add{margin-top:auto;border:0;background:var(--bk);color:#fff;border-radius:10px;padding:9px;font-weight:700;font-size:14px}
+.add{margin-top:auto;border:0;background:var(--btn);color:var(--btnt);border-radius:10px;padding:9px;font-weight:700;font-size:14px}
 .add:active{background:var(--or)}
-.bar{position:fixed;left:12px;right:12px;bottom:12px;background:var(--or);color:#fff;border:0;border-radius:14px;padding:15px 18px;display:flex;justify-content:space-between;font-size:16px;font-weight:800;box-shadow:0 6px 18px rgba(255,122,0,.35)}
+.bar{position:fixed;left:12px;right:12px;bottom:12px;z-index:20;background:var(--or);color:#fff;border:0;border-radius:14px;padding:15px 18px;display:flex;justify-content:space-between;font-size:16px;font-weight:800;box-shadow:0 6px 18px rgba(255,122,0,.35)}
+.bar.hn{bottom:76px}
 .bar:disabled{opacity:.6}
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:15;background:var(--bg);border-top:1px solid var(--ln);display:flex;padding-bottom:env(safe-area-inset-bottom)}
+.nav button{flex:1;border:0;background:none;color:var(--gr);padding:8px 2px 9px;font-size:11px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:2px}
+.nav button i{font-style:normal;font-size:20px}
+.nav button.on{color:var(--or)}
 .page{padding:16px}
 .page h2{margin:0 0 14px;font-size:20px}
 .back{border:0;background:none;color:var(--or);font-weight:700;font-size:15px;padding:0 0 12px}
@@ -41,18 +56,20 @@ header h1 span{color:var(--or)}
 .row .mid{flex:1;min-width:0}
 .var{font-size:12px;color:var(--gr);margin-top:2px}
 .qty{display:flex;align-items:center;gap:10px}
-.qty button{width:30px;height:30px;border-radius:50%;border:1px solid var(--ln);background:#fff;font-size:18px;font-weight:700}
+.qty button{width:30px;height:30px;border-radius:50%;border:1px solid var(--ln);background:var(--card);color:var(--tx);font-size:18px;font-weight:700}
 .total{display:flex;justify-content:space-between;font-size:18px;font-weight:800;padding:16px 0}
 label{display:block;font-size:13px;font-weight:600;margin:12px 0 6px;color:var(--gr)}
-input,select{width:100%;padding:13px;border:1px solid var(--ln);border-radius:12px;font-size:16px;background:#fff;color:var(--bk)}
+input,select{width:100%;padding:13px;border:1px solid var(--ln);border-radius:12px;font-size:16px;background:var(--card);color:var(--tx);font-family:inherit}
 input:focus,select:focus{outline:2px solid var(--or);border-color:var(--or)}
 .btn{width:100%;margin-top:18px;border:0;background:var(--or);color:#fff;border-radius:14px;padding:15px;font-size:16px;font-weight:800}
+.btn.sec{background:var(--btn);color:var(--btnt)}
 .btn:disabled{opacity:.6}
 .box{background:var(--or2);border:1px dashed var(--or);border-radius:14px;padding:14px;margin:12px 0}
 .cardno{font-size:22px;font-weight:800;letter-spacing:1px;margin:6px 0}
 .empty{text-align:center;color:var(--gr);padding:60px 20px}
 .done{text-align:center;padding:50px 20px}
 .done .big{font-size:64px}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#1b9b4b;color:#fff;padding:10px 18px;border-radius:20px;font-weight:700;z-index:30;font-size:14px}
 /* mahsulot sahifasi */
 .pback{position:absolute;top:10px;left:10px;z-index:3;width:38px;height:38px;border-radius:50%;border:0;background:rgba(20,20,20,.65);color:#fff;font-size:20px;font-weight:700}
 .gwrap{position:relative;background:var(--or2)}
@@ -69,19 +86,35 @@ input:focus,select:focus{outline:2px solid var(--or);border-color:var(--or)}
 .pbody .pprice .old{font-size:15px}
 .vlabel{font-size:13px;font-weight:700;color:var(--gr);margin:18px 0 8px}
 .vchips{display:flex;flex-wrap:wrap;gap:8px}
-.vchip{border:1px solid var(--ln);background:#fff;color:var(--bk);border-radius:10px;padding:9px 16px;font-size:15px;font-weight:700}
-.vchip.on{background:var(--bk);border-color:var(--bk);color:#fff}
-.pdesc{margin-top:18px;font-size:15px;line-height:1.5;white-space:pre-line;color:#333}
+.vchip{border:1px solid var(--ln);background:var(--card);color:var(--tx);border-radius:10px;padding:9px 16px;font-size:15px;font-weight:700}
+.vchip.on{background:var(--btn);border-color:var(--btn);color:var(--btnt)}
+.pdesc{margin-top:18px;font-size:15px;line-height:1.5;white-space:pre-line;color:var(--tx)}
 .pdesc h4{margin:0 0 6px;font-size:13px;color:var(--gr);text-transform:uppercase;letter-spacing:.5px}
+/* buyurtmalarim */
+.ord{border:1px solid var(--ln);border-radius:14px;padding:12px;margin:0 0 14px;background:var(--card)}
+.ord .top{display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:800}
+.ord .dt{font-size:12px;color:var(--gr);font-weight:500;margin-top:2px}
+.st{font-size:12px;font-weight:700;padding:4px 9px;border-radius:9px;text-align:right;line-height:1.25;max-width:60%}
+.st.wait_receipt{background:var(--ln);color:var(--gr)}
+.st.checking{background:#fff3cd;color:#8a6d00}
+.st.paid{background:#d9f2e3;color:#16803c}
+.st.rejected{background:#fdecea;color:#d93025}
+.st.ship{background:var(--or2);color:var(--or)}
+.ord .row:last-of-type{border-bottom:0}
+.ord .tot{display:flex;justify-content:space-between;font-weight:800;padding-top:10px;border-top:1px solid var(--ln)}
+/* profil / yordam */
+.me{display:flex;gap:12px;align-items:center;background:var(--or2);border-radius:14px;padding:12px;margin-bottom:6px}
+.me .av{width:44px;height:44px;border-radius:50%;background:var(--or);color:#fff;font-weight:800;font-size:20px;display:flex;align-items:center;justify-content:center}
+.me .tn{font-weight:800}.me .tu{font-size:13px;color:var(--gr)}
+.sp{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:1px solid var(--ln);background:var(--card);color:var(--tx);border-radius:14px;padding:14px;margin-bottom:10px;font-size:16px;font-weight:700}
+.sp .ic{width:42px;height:42px;border-radius:50%;background:#229ED9;color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
+.sp small{display:block;color:var(--gr);font-weight:500;font-size:13px;margin-top:2px}
 </style>
 </head>
 <body>
 <div id="app"></div>
 
 <script>
-/* Do'kon nomi (ikki so'z): shu yerdan o'zgartiring */
-const SHOP = ["Xitoy", "Market"];
-
 const T = {
   uz:{all:"Hammasi",kiyim:"Kiyim",elektr:"Elektronika",uy:"Uy-ro'zg'or",sale:"Chegirmalar",add:"Savatga",choose:"Tanlash",cart:"Savat",
       empty:"Savat bo'sh",total:"Jami",order:"Buyurtma berish",back:"← Orqaga",sum:"so'm",
@@ -89,35 +122,59 @@ const T = {
       post:"Eng yaqin Uzpost punkti",next:"To'lovga o'tish",pay:"To'lov",
       payInfo:"Quyidagi kartaga to'lovni o'tkazing, so'ng pastdagi tugmani bosing. Bot sizdan chek rasmini so'raydi.",
       confirm:"To'lov qildim, buyurtmani yuborish",fill:"Barcha maydonlarni to'ldiring",sel:"Tanlang",
-      loading:"Yuklanmoqda...",noprod:"Hozircha mahsulot yo'q",fail:"Yuklab bo'lmadi. Telegram ichida qayta oching.",
+      loading:"Yuklanmoqda...",noprod:"Hech narsa topilmadi",fail:"Yuklab bo'lmadi. Telegram ichida qayta oching.",
       error:"Xatolik yuz berdi. Qayta urinib ko'ring.",doneT:"Buyurtma qabul qilindi!",
       doneX:"Botga o'ting va to'lov chekining rasmini yuboring. Tasdiqlangach xabar beramiz.",close:"Botga qaytish",
-      size:"O'lcham",color:"Rang",about:"Mahsulot haqida",pickSize:"O'lchamni tanlang",pickColor:"Rangni tanlang",toCart:"Savatga qo'shish"},
+      size:"O'lcham",color:"Rang",about:"Mahsulot haqida",pickSize:"O'lchamni tanlang",pickColor:"Rangni tanlang",toCart:"Savatga qo'shish",
+      home:"Bosh sahifa",orders:"Buyurtmalarim",profile:"Profil",support:"Yordam",search:"Mahsulot qidirish...",
+      noOrders:"Hali buyurtmalar yo'q",refresh:"Yangilash",profileT:"Profil",save:"Saqlash",saved:"Saqlandi ✓",
+      profileHint:"Ma'lumotlaringiz saqlanadi va buyurtma berishda avtomatik to'ldiriladi.",
+      supportT:"Qo'llab-quvvatlash",supportX:"Savolingiz bormi? Quyidagilarga Telegramda yozing:",noSupport:"Aloqa ma'lumotlari tez orada qo'shiladi.",
+      wait_receipt:"Chek kutilmoqda",checking:"To'lov tekshirilmoqda",paid:"To'lov tasdiqlandi",rejected:"To'lov rad etildi",
+      viewOrders:"Buyurtmalarimga o'tish",tgAcc:"Telegram akkauntingiz"},
   ru:{all:"Все",kiyim:"Одежда",elektr:"Электроника",uy:"Для дома",sale:"Скидки",add:"В корзину",choose:"Выбрать",cart:"Корзина",
       empty:"Корзина пуста",total:"Итого",order:"Оформить заказ",back:"← Назад",sum:"сум",
       delivery:"Доставка",name:"Ваше имя",phone:"Номер телефона",region:"Область",city:"Город / район",
       post:"Ближайшее отделение Uzpost",next:"Перейти к оплате",pay:"Оплата",
       payInfo:"Переведите оплату на карту ниже, затем нажмите кнопку. Бот попросит прислать фото чека.",
       confirm:"Я оплатил, отправить заказ",fill:"Заполните все поля",sel:"Выберите",
-      loading:"Загрузка...",noprod:"Пока нет товаров",fail:"Не удалось загрузить. Откройте заново в Telegram.",
+      loading:"Загрузка...",noprod:"Ничего не найдено",fail:"Не удалось загрузить. Откройте заново в Telegram.",
       error:"Произошла ошибка. Попробуйте ещё раз.",doneT:"Заказ принят!",
       doneX:"Перейдите в бота и отправьте фото чека об оплате. После подтверждения мы сообщим.",close:"Вернуться в бота",
-      size:"Размер",color:"Цвет",about:"О товаре",pickSize:"Выберите размер",pickColor:"Выберите цвет",toCart:"Добавить в корзину"}
+      size:"Размер",color:"Цвет",about:"О товаре",pickSize:"Выберите размер",pickColor:"Выберите цвет",toCart:"Добавить в корзину",
+      home:"Главная",orders:"Мои заказы",profile:"Профиль",support:"Помощь",search:"Поиск товаров...",
+      noOrders:"Заказов пока нет",refresh:"Обновить",profileT:"Профиль",save:"Сохранить",saved:"Сохранено ✓",
+      profileHint:"Данные сохраняются и подставляются при оформлении заказа.",
+      supportT:"Поддержка",supportX:"Есть вопрос? Напишите нам в Telegram:",noSupport:"Контакты скоро появятся.",
+      wait_receipt:"Ожидается чек",checking:"Оплата проверяется",paid:"Оплата подтверждена",rejected:"Оплата отклонена",
+      viewOrders:"Перейти к моим заказам",tgAcc:"Ваш аккаунт Telegram"}
 };
 const REGIONS = {
   uz:["Toshkent shahri","Toshkent viloyati","Andijon","Buxoro","Farg'ona","Jizzax","Namangan","Navoiy","Qashqadaryo","Qoraqalpog'iston","Samarqand","Sirdaryo","Surxondaryo","Xorazm"],
   ru:["г. Ташкент","Ташкентская обл.","Андижан","Бухара","Фергана","Джизак","Наманган","Навои","Кашкадарья","Каракалпакстан","Самарканд","Сырдарья","Сурхандарья","Хорезм"]
 };
+const TABS = ["shop","orders","profile","support"];
 
 const tg = window.Telegram && window.Telegram.WebApp;
-if (tg) { tg.ready(); tg.expand(); }
+if (tg) { try{ tg.ready(); tg.expand(); }catch(e){} }
+const canSync = !!(tg && tg.initData);
 
-let lang = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.language_code === "ru") ? "ru" : "uz";
-let view = "shop", cat = "all";
-let products = [], loaded = false, failed = false, cfg = {card:"", owner:""}, busy = false;
-let cart = [];                       // [{id,size,color,qty}]
+function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+
+let lang = lsGet("lang") || ((tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.language_code === "ru") ? "ru" : "uz");
+if (lang !== "uz" && lang !== "ru") lang = "uz";
+let theme = lsGet("theme") === "dark" ? "dark" : "light";
+let view = "shop", cat = "all", q = "";
+let products = [], loaded = false, failed = false, cfg = {card:"", owner:"", support:[], stages:[]}, busy = false;
+let cart = [];                       // [{id,size,color,qty}]  (bazada ham saqlanadi)
 let curId = null, sel = {size:"", color:""}, detail = {};
 let form = {name:"", phone:"+998", region:"", city:"", post:""};
+let me = {tg_name:"", tg_user:""};
+let myOrders = null, ordersBusy = false;
+
+function applyTheme(){ document.documentElement.setAttribute("data-theme", theme); }
+applyTheme();
 
 const t = k => T[lang][k];
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -128,6 +185,16 @@ const count = () => cart.filter(l => P(l.id)).reduce((a,l) => a + l.qty, 0);
 const total = () => cart.reduce((s,l) => s + (P(l.id) ? P(l.id).price * l.qty : 0), 0);
 const sameLine = (l,id,size,color) => l.id == id && l.size === size && l.color === color;
 
+async function api(path, method="GET", body){
+  const r = await fetch(path, {
+    method,
+    headers:{"Content-Type":"application/json","X-Init-Data":(tg && tg.initData) || ""},
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if(!r.ok) throw new Error(r.status);
+  return r.json();
+}
+
 async function load(){
   try{
     const [a,b] = await Promise.all([fetch("/api/products"), fetch("/api/config")]);
@@ -135,18 +202,83 @@ async function load(){
     products = await a.json(); cfg = await b.json(); loaded = true;
   }catch(e){ failed = true; }
   render();
+  if(canSync){
+    try{
+      const [pr, ct] = await Promise.all([api("/api/profile"), api("/api/cart")]);
+      me = pr;
+      if(pr.lang === "uz" || pr.lang === "ru"){ lang = pr.lang; lsSet("lang", lang); }
+      if(pr.theme === "dark" || pr.theme === "light"){ theme = pr.theme; lsSet("theme", theme); applyTheme(); }
+      form.name = pr.name || form.name;
+      form.phone = pr.phone || form.phone;
+      form.region = pr.region !== "" ? pr.region : form.region;
+      form.city = pr.city || form.city;
+      form.post = pr.post || form.post;
+      if(!cart.length) cart = ct.map(l => ({id:l.id, size:l.size||"", color:l.color||"", qty:l.qty}));
+    }catch(e){}
+    render();
+  }
 }
 
-function setLang(l){ lang = l; render(); }
+/* ---------- saqlash (baza) ---------- */
+let cartTimer = null;
+function saveCart(){
+  if(!canSync) return;
+  clearTimeout(cartTimer);
+  cartTimer = setTimeout(() => {
+    api("/api/cart", "PUT", {items: cart.filter(l => P(l.id)).map(l => ({id:+l.id, qty:l.qty, size:l.size, color:l.color}))}).catch(()=>{});
+  }, 500);
+}
+function savePref(o){ if(canSync) api("/api/profile", "PUT", o).catch(()=>{}); }
+
+function toast(msg){
+  const d = document.createElement("div"); d.className = "toast"; d.textContent = msg;
+  document.body.appendChild(d); setTimeout(() => d.remove(), 1600);
+}
+
+function setLang(l){ lang = l; lsSet("lang", l); savePref({lang:l}); render(); }
+function toggleTheme(){ theme = theme === "dark" ? "light" : "dark"; lsSet("theme", theme); applyTheme(); savePref({theme}); render(); }
 function setCat(c){ cat = c; render(); }
-function go(v){ view = v; window.scrollTo(0,0); render(); }
+function go(v){
+  view = v; window.scrollTo(0,0);
+  if(v === "orders") loadOrders();
+  render();
+}
 function addLine(id,size="",color=""){
   const l = cart.find(x => sameLine(x,id,size,color));
   if(l) l.qty++; else cart.push({id,size,color,qty:1});
+  saveCart();
 }
 function quickAdd(id){ addLine(id); render(); }
-function chg(i,d){ cart[i].qty += d; if(cart[i].qty <= 0) cart.splice(i,1); if(!count()) view = "shop"; render(); }
+function chg(i,d){
+  cart[i].qty += d; if(cart[i].qty <= 0) cart.splice(i,1);
+  if(!count()) view = "shop";
+  saveCart(); render();
+}
 function setF(k,v){ form[k] = v; }
+
+/* ---------- qidiruv ---------- */
+function filtered(){
+  const s = q.trim().toLowerCase();
+  return products.filter(p => {
+    if(cat === "sale" ? !(p.old_price && p.old_price > p.price) : (cat !== "all" && p.cat !== cat)) return false;
+    return !s || (p.name_uz + " " + p.name_ru).toLowerCase().includes(s);
+  });
+}
+function setQ(v){ q = v; const g = document.getElementById("grid"); if(g) g.innerHTML = gridHtml(); }
+
+function gridHtml(){
+  if(failed) return `<div class="empty">${t("fail")}</div>`;
+  if(!loaded) return `<div class="empty">${t("loading")}</div>`;
+  const list = filtered();
+  if(!list.length) return `<div class="empty">${t("noprod")}</div>`;
+  return `<div class="grid">` + list.map(p => {
+    const sale = p.old_price && p.old_price > p.price;
+    return `<div class="card"><div class="pic" onclick="openP(${p.id})">${pic(p)}${sale ? `<span class="badge">-${Math.round((1-p.price/p.old_price)*100)}%</span>` : ""}</div>
+    <div class="info"><div class="name" onclick="openP(${p.id})">${esc(pname(p))}</div>
+    <div><span class="price">${fmt(p.price)}</span>${sale ? `<span class="old">${fmt(p.old_price)}</span>` : ""}</div>
+    <button class="add" onclick="${p.has_var ? `openP(${p.id})` : `quickAdd(${p.id})`}">${p.has_var ? t("choose") : t("add")}</button></div></div>`;
+  }).join("") + `</div>`;
+}
 
 /* ---------- mahsulot sahifasi ---------- */
 async function openP(id){
@@ -199,31 +331,32 @@ function productView(){
   return gal + body + bar;
 }
 
+/* ---------- umumiy qismlar ---------- */
 function header(){
-  return `<header><h1>${esc(SHOP[0])} <span>${esc(SHOP[1])}</span></h1>
-  <div class="lang"><button class="${lang==='uz'?'on':''}" onclick="setLang('uz')">UZ</button>
-  <button class="${lang==='ru'?'on':''}" onclick="setLang('ru')">RU</button></div></header>`;
+  const n = count();
+  return `<header><h1><span class="l">Lemmon</span> <span class="s">Shop</span></h1>
+  <div class="hr"><div class="lang"><button class="${lang==='uz'?'on':''}" onclick="setLang('uz')">UZ</button>
+  <button class="${lang==='ru'?'on':''}" onclick="setLang('ru')">RU</button></div>
+  <button class="ib" onclick="toggleTheme()" aria-label="theme">${theme==='dark' ? '☀️' : '🌙'}</button>
+  <button class="ib" onclick="go('cart')" aria-label="cart">🛒${n ? `<span class="n">${n}</span>` : ""}</button></div></header>`;
+}
+
+function nav(){
+  const items = [["shop","🏠",t("home")],["orders","📦",t("orders")],["profile","👤",t("profile")],["support","💬",t("support")]];
+  return `<nav class="nav">${items.map(([v,ic,lb]) => `<button class="${view===v?'on':''}" onclick="go('${v}')"><i>${ic}</i>${lb}</button>`).join("")}</nav>`;
 }
 
 function pic(p){ return p.img ? `<img src="${p.img}" loading="lazy" alt="">` : "📦"; }
 
+function cartBar(){
+  return count() ? `<button class="bar hn" onclick="go('cart')"><span>🛒 ${t("cart")} · ${count()}</span><span>${fmt(total())}</span></button>` : "";
+}
+
 function shop(){
   const cats = ["all","kiyim","elektr","uy","sale"];
   const chips = cats.map(c=>`<button class="chip ${cat===c?'on':''}" onclick="setCat('${c}')">${t(c)}</button>`).join("");
-  let body;
-  if(failed) body = `<div class="empty">${t("fail")}</div>`;
-  else if(!loaded) body = `<div class="empty">${t("loading")}</div>`;
-  else {
-    const list = products.filter(p => cat==="all" ? true : cat==="sale" ? (p.old_price && p.old_price>p.price) : p.cat===cat);
-    body = list.length ? `<div class="grid">` + list.map(p=>`
-      <div class="card"><div class="pic" onclick="openP(${p.id})">${pic(p)}${p.old_price&&p.old_price>p.price?`<span class="badge">-${Math.round((1-p.price/p.old_price)*100)}%</span>`:""}</div>
-      <div class="info"><div class="name" onclick="openP(${p.id})">${esc(pname(p))}</div>
-      <div><span class="price">${fmt(p.price)}</span>${p.old_price&&p.old_price>p.price?`<span class="old">${fmt(p.old_price)}</span>`:""}</div>
-      <button class="add" onclick="${p.has_var ? `openP(${p.id})` : `quickAdd(${p.id})`}">${p.has_var ? t("choose") : t("add")}</button></div></div>`).join("") + `</div>`
-      : `<div class="empty">${t("noprod")}</div>`;
-  }
-  const bar = count() ? `<button class="bar" onclick="go('cart')"><span>🛒 ${t("cart")} · ${count()}</span><span>${fmt(total())}</span></button>` : "";
-  return header()+`<div class="cats">${chips}</div>${body}`+bar;
+  return header() + `<div class="sub"><div class="search"><span class="mg">🔍</span><input id="q" type="search" placeholder="${esc(t("search"))}" value="${esc(q)}" oninput="setQ(this.value)"></div>
+  <div class="cats">${chips}</div></div><div id="grid">${gridHtml()}</div>` + cartBar() + nav();
 }
 
 function cartView(){
@@ -240,13 +373,16 @@ function cartView(){
   ${rows?`<button class="btn" onclick="go('checkout')">${t("order")}</button>`:""}</div>`;
 }
 
+function regionOpts(){
+  return `<option value="">${t("sel")}</option>` + REGIONS[lang].map((r,i)=>`<option value="${i}" ${String(form.region)===String(i)?'selected':''}>${r}</option>`).join("");
+}
+
 function checkout(){
-  const opts = `<option value="">${t("sel")}</option>` + REGIONS[lang].map((r,i)=>`<option value="${i}" ${String(form.region)===String(i)?'selected':''}>${r}</option>`).join("");
   return header()+`<div class="page"><button class="back" onclick="go('cart')">${t("back")}</button>
   <h2>${t("delivery")}</h2>
   <label>${t("name")}</label><input value="${esc(form.name)}" oninput="setF('name',this.value)">
   <label>${t("phone")}</label><input type="tel" inputmode="tel" value="${esc(form.phone)}" oninput="setF('phone',this.value)">
-  <label>${t("region")}</label><select onchange="setF('region',this.value)">${opts}</select>
+  <label>${t("region")}</label><select onchange="setF('region',this.value)">${regionOpts()}</select>
   <label>${t("city")}</label><input value="${esc(form.city)}" oninput="setF('city',this.value)">
   <label>${t("post")}</label><input value="${esc(form.post)}" oninput="setF('post',this.value)">
   <button class="btn" onclick="toPay()">${t("next")}</button></div>`;
@@ -273,28 +409,87 @@ async function send(){
   if(busy) return;
   busy = true; render();
   try{
-    const r = await fetch("/api/order", {
-      method:"POST",
-      headers:{"Content-Type":"application/json","X-Init-Data":(tg && tg.initData) || ""},
-      body: JSON.stringify({
-        name:form.name.trim(), phone:form.phone.trim(),
-        region:REGIONS[lang][form.region], city:form.city.trim(), post:form.post.trim(), lang,
-        items:cart.filter(l=>P(l.id)).map(l=>({id:+l.id,qty:l.qty,size:l.size,color:l.color}))
-      })
+    await api("/api/order", "POST", {
+      name:form.name.trim(), phone:form.phone.trim(),
+      region:REGIONS[lang][form.region], region_i:String(form.region), city:form.city.trim(), post:form.post.trim(), lang,
+      items:cart.filter(l=>P(l.id)).map(l=>({id:+l.id,qty:l.qty,size:l.size,color:l.color}))
     });
-    if(!r.ok) throw new Error(r.status);
-    cart = []; view = "done";
+    cart = []; myOrders = null; view = "done";
   }catch(e){ alertMsg(t("error")); }
   busy = false; render();
 }
 
 function done(){
   return header()+`<div class="done"><div class="big">✅</div><h2>${t("doneT")}</h2>
-  <p>${t("doneX")}</p><button class="btn" onclick="tg&&tg.close()">${t("close")}</button></div>`;
+  <p>${t("doneX")}</p><button class="btn" onclick="tg&&tg.close()">${t("close")}</button>
+  <button class="btn sec" onclick="go('orders')">${t("viewOrders")}</button></div>`;
+}
+
+/* ---------- Buyurtmalarim ---------- */
+async function loadOrders(){
+  if(!canSync){ myOrders = []; return; }
+  ordersBusy = true;
+  try{ myOrders = await api("/api/my/orders"); }catch(e){ if(myOrders === null) myOrders = []; }
+  ordersBusy = false;
+  if(view === "orders") render();
+}
+
+function stateOf(o){
+  if(o.ship){
+    const st = (cfg.stages || []).find(x => x.k === o.ship);
+    return {cls:"ship", text: st ? st[lang] : o.ship};
+  }
+  return {cls:o.status, text:t(o.status) || o.status};
+}
+
+function ordersView(){
+  let body;
+  if(myOrders === null) body = `<div class="empty">${t("loading")}</div>`;
+  else if(!myOrders.length) body = `<div class="empty">${t("noOrders")}</div>`;
+  else body = myOrders.map(o => {
+    const s = stateOf(o);
+    const d = new Date(o.created * 1000).toLocaleString("ru-RU", {timeZone:"Asia/Tashkent", day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit"});
+    const rows = o.items.map(i => `<div class="row"><div class="em">${i.img ? `<img src="${i.img}" loading="lazy" alt="">` : "📦"}</div>
+      <div class="mid"><div class="name">${esc(lang==="ru" ? i.name_ru : i.name)}</div>
+      <div class="var">${i.qty} × ${fmt(i.price)}</div></div><div class="price">${fmt(i.qty*i.price)}</div></div>`).join("");
+    return `<div class="ord"><div class="top"><div>#${o.id}<div class="dt">${d}</div></div><span class="st ${s.cls}">${esc(s.text)}</span></div>
+      ${rows}<div class="tot"><span>${t("total")}</span><span>${fmt(o.total)}</span></div></div>`;
+  }).join("");
+  return header()+`<div class="page"><h2>📦 ${t("orders")} <button class="ib" style="float:right;font-size:13px" onclick="loadOrders()">🔄 ${t("refresh")}</button></h2>${body}</div>` + nav();
+}
+
+/* ---------- Profil ---------- */
+function saveProfile(){
+  if(!canSync){ alertMsg(t("error")); return; }
+  api("/api/profile", "PUT", {name:form.name.trim(), phone:form.phone.trim(), region:String(form.region), city:form.city.trim(), post:form.post.trim()})
+    .then(() => toast(t("saved"))).catch(() => alertMsg(t("error")));
+}
+function profileView(){
+  const nm = me.tg_name || form.name || "?";
+  return header()+`<div class="page"><h2>👤 ${t("profileT")}</h2>
+  <div class="me"><div class="av">${esc(nm.trim().charAt(0).toUpperCase())}</div><div><div class="tn">${esc(nm)}</div>${me.tg_user ? `<div class="tu">@${esc(me.tg_user)}</div>` : ""}</div></div>
+  <div class="var" style="margin:8px 0 0">${t("profileHint")}</div>
+  <label>${t("name")}</label><input value="${esc(form.name)}" oninput="setF('name',this.value)">
+  <label>${t("phone")}</label><input type="tel" inputmode="tel" value="${esc(form.phone)}" oninput="setF('phone',this.value)">
+  <label>${t("region")}</label><select onchange="setF('region',this.value)">${regionOpts()}</select>
+  <label>${t("city")}</label><input value="${esc(form.city)}" oninput="setF('city',this.value)">
+  <label>${t("post")}</label><input value="${esc(form.post)}" oninput="setF('post',this.value)">
+  <button class="btn" onclick="saveProfile()">${t("save")}</button></div>` + nav();
+}
+
+/* ---------- Qo'llab-quvvatlash ---------- */
+function openTg(u){
+  const url = "https://t.me/" + u;
+  if(tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank");
+}
+function supportView(){
+  const list = (cfg.support || []).map(s => `<button class="sp" onclick="openTg('${esc(s.user)}')"><span class="ic">✈️</span><span>${esc(s.name)}<small>@${esc(s.user)}</small></span></button>`).join("");
+  return header()+`<div class="page"><h2>💬 ${t("supportT")}</h2><p class="var" style="font-size:14px;margin:0 0 14px">${t("supportX")}</p>
+  ${list || `<div class="empty">${t("noSupport")}</div>`}</div>` + nav();
 }
 
 function render(){
-  const v = {shop,product:productView,cart:cartView,checkout,pay,done}[view];
+  const v = {shop,product:productView,cart:cartView,checkout,pay,done,orders:ordersView,profile:profileView,support:supportView}[view];
   document.getElementById("app").innerHTML = v();
 }
 render();
