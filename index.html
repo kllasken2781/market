@@ -31,13 +31,15 @@ header h1 span{color:var(--or)}
 .add{margin-top:auto;border:0;background:var(--bk);color:#fff;border-radius:10px;padding:9px;font-weight:700;font-size:14px}
 .add:active{background:var(--or)}
 .bar{position:fixed;left:12px;right:12px;bottom:12px;background:var(--or);color:#fff;border:0;border-radius:14px;padding:15px 18px;display:flex;justify-content:space-between;font-size:16px;font-weight:800;box-shadow:0 6px 18px rgba(255,122,0,.35)}
+.bar:disabled{opacity:.6}
 .page{padding:16px}
 .page h2{margin:0 0 14px;font-size:20px}
 .back{border:0;background:none;color:var(--or);font-weight:700;font-size:15px;padding:0 0 12px}
 .row{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--ln)}
-.row .em{font-size:30px;width:52px;height:52px;background:var(--or2);border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.row .em{font-size:30px;width:52px;height:52px;background:var(--or2);border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex:none}
 .row .em img{width:100%;height:100%;object-fit:cover}
-.row .mid{flex:1}
+.row .mid{flex:1;min-width:0}
+.var{font-size:12px;color:var(--gr);margin-top:2px}
 .qty{display:flex;align-items:center;gap:10px}
 .qty button{width:30px;height:30px;border-radius:50%;border:1px solid var(--ln);background:#fff;font-size:18px;font-weight:700}
 .total{display:flex;justify-content:space-between;font-size:18px;font-weight:800;padding:16px 0}
@@ -51,6 +53,26 @@ input:focus,select:focus{outline:2px solid var(--or);border-color:var(--or)}
 .empty{text-align:center;color:var(--gr);padding:60px 20px}
 .done{text-align:center;padding:50px 20px}
 .done .big{font-size:64px}
+/* mahsulot sahifasi */
+.pback{position:absolute;top:10px;left:10px;z-index:3;width:38px;height:38px;border-radius:50%;border:0;background:rgba(20,20,20,.65);color:#fff;font-size:20px;font-weight:700}
+.gwrap{position:relative;background:var(--or2)}
+.gal{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+.gal::-webkit-scrollbar{display:none}
+.gal img{flex:none;width:100%;aspect-ratio:1/1;object-fit:cover;scroll-snap-align:center;display:block}
+.nogal{height:300px;display:flex;align-items:center;justify-content:center;font-size:80px}
+.dots{position:absolute;bottom:10px;left:0;right:0;display:flex;justify-content:center;gap:6px}
+.dots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.6);display:block}
+.dots i.on{background:var(--or)}
+.pbody{padding:16px}
+.pbody .ptitle{font-size:20px;font-weight:800;line-height:1.25;margin:0 0 8px}
+.pbody .pprice{font-size:24px;font-weight:900;color:var(--or)}
+.pbody .pprice .old{font-size:15px}
+.vlabel{font-size:13px;font-weight:700;color:var(--gr);margin:18px 0 8px}
+.vchips{display:flex;flex-wrap:wrap;gap:8px}
+.vchip{border:1px solid var(--ln);background:#fff;color:var(--bk);border-radius:10px;padding:9px 16px;font-size:15px;font-weight:700}
+.vchip.on{background:var(--bk);border-color:var(--bk);color:#fff}
+.pdesc{margin-top:18px;font-size:15px;line-height:1.5;white-space:pre-line;color:#333}
+.pdesc h4{margin:0 0 6px;font-size:13px;color:var(--gr);text-transform:uppercase;letter-spacing:.5px}
 </style>
 </head>
 <body>
@@ -61,7 +83,7 @@ input:focus,select:focus{outline:2px solid var(--or);border-color:var(--or)}
 const SHOP = ["Xitoy", "Market"];
 
 const T = {
-  uz:{all:"Hammasi",kiyim:"Kiyim",elektr:"Elektronika",uy:"Uy-ro'zg'or",sale:"Chegirmalar",add:"Savatga",cart:"Savat",
+  uz:{all:"Hammasi",kiyim:"Kiyim",elektr:"Elektronika",uy:"Uy-ro'zg'or",sale:"Chegirmalar",add:"Savatga",choose:"Tanlash",cart:"Savat",
       empty:"Savat bo'sh",total:"Jami",order:"Buyurtma berish",back:"← Orqaga",sum:"so'm",
       delivery:"Yetkazib berish",name:"Ismingiz",phone:"Telefon raqam",region:"Viloyat",city:"Shahar / tuman",
       post:"Eng yaqin Uzpost punkti",next:"To'lovga o'tish",pay:"To'lov",
@@ -69,8 +91,9 @@ const T = {
       confirm:"To'lov qildim, buyurtmani yuborish",fill:"Barcha maydonlarni to'ldiring",sel:"Tanlang",
       loading:"Yuklanmoqda...",noprod:"Hozircha mahsulot yo'q",fail:"Yuklab bo'lmadi. Telegram ichida qayta oching.",
       error:"Xatolik yuz berdi. Qayta urinib ko'ring.",doneT:"Buyurtma qabul qilindi!",
-      doneX:"Botga o'ting va to'lov chekining rasmini yuboring. Tasdiqlangach xabar beramiz.",close:"Botga qaytish"},
-  ru:{all:"Все",kiyim:"Одежда",elektr:"Электроника",uy:"Для дома",sale:"Скидки",add:"В корзину",cart:"Корзина",
+      doneX:"Botga o'ting va to'lov chekining rasmini yuboring. Tasdiqlangach xabar beramiz.",close:"Botga qaytish",
+      size:"O'lcham",color:"Rang",about:"Mahsulot haqida",pickSize:"O'lchamni tanlang",pickColor:"Rangni tanlang",toCart:"Savatga qo'shish"},
+  ru:{all:"Все",kiyim:"Одежда",elektr:"Электроника",uy:"Для дома",sale:"Скидки",add:"В корзину",choose:"Выбрать",cart:"Корзина",
       empty:"Корзина пуста",total:"Итого",order:"Оформить заказ",back:"← Назад",sum:"сум",
       delivery:"Доставка",name:"Ваше имя",phone:"Номер телефона",region:"Область",city:"Город / район",
       post:"Ближайшее отделение Uzpost",next:"Перейти к оплате",pay:"Оплата",
@@ -78,7 +101,8 @@ const T = {
       confirm:"Я оплатил, отправить заказ",fill:"Заполните все поля",sel:"Выберите",
       loading:"Загрузка...",noprod:"Пока нет товаров",fail:"Не удалось загрузить. Откройте заново в Telegram.",
       error:"Произошла ошибка. Попробуйте ещё раз.",doneT:"Заказ принят!",
-      doneX:"Перейдите в бота и отправьте фото чека об оплате. После подтверждения мы сообщим.",close:"Вернуться в бота"}
+      doneX:"Перейдите в бота и отправьте фото чека об оплате. После подтверждения мы сообщим.",close:"Вернуться в бота",
+      size:"Размер",color:"Цвет",about:"О товаре",pickSize:"Выберите размер",pickColor:"Выберите цвет",toCart:"Добавить в корзину"}
 };
 const REGIONS = {
   uz:["Toshkent shahri","Toshkent viloyati","Andijon","Buxoro","Farg'ona","Jizzax","Namangan","Navoiy","Qashqadaryo","Qoraqalpog'iston","Samarqand","Sirdaryo","Surxondaryo","Xorazm"],
@@ -91,7 +115,8 @@ if (tg) { tg.ready(); tg.expand(); }
 let lang = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.language_code === "ru") ? "ru" : "uz";
 let view = "shop", cat = "all";
 let products = [], loaded = false, failed = false, cfg = {card:"", owner:""}, busy = false;
-let cart = {};
+let cart = [];                       // [{id,size,color,qty}]
+let curId = null, sel = {size:"", color:""}, detail = {};
 let form = {name:"", phone:"+998", region:"", city:"", post:""};
 
 const t = k => T[lang][k];
@@ -99,8 +124,9 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">"
 const fmt = n => Number(n).toLocaleString("ru-RU") + " " + t("sum");
 const P = id => products.find(p => p.id == id);
 const pname = p => lang === "ru" ? p.name_ru : p.name_uz;
-const count = () => Object.entries(cart).filter(([id]) => P(id)).reduce((a,[,q]) => a+q, 0);
-const total = () => Object.entries(cart).reduce((s,[id,q]) => s + (P(id) ? P(id).price*q : 0), 0);
+const count = () => cart.filter(l => P(l.id)).reduce((a,l) => a + l.qty, 0);
+const total = () => cart.reduce((s,l) => s + (P(l.id) ? P(l.id).price * l.qty : 0), 0);
+const sameLine = (l,id,size,color) => l.id == id && l.size === size && l.color === color;
 
 async function load(){
   try{
@@ -114,9 +140,64 @@ async function load(){
 function setLang(l){ lang = l; render(); }
 function setCat(c){ cat = c; render(); }
 function go(v){ view = v; window.scrollTo(0,0); render(); }
-function add(id){ cart[id] = (cart[id]||0)+1; render(); }
-function chg(id,d){ cart[id] = (cart[id]||0)+d; if(cart[id]<=0) delete cart[id]; if(!count()) view="shop"; render(); }
+function addLine(id,size="",color=""){
+  const l = cart.find(x => sameLine(x,id,size,color));
+  if(l) l.qty++; else cart.push({id,size,color,qty:1});
+}
+function quickAdd(id){ addLine(id); render(); }
+function chg(i,d){ cart[i].qty += d; if(cart[i].qty <= 0) cart.splice(i,1); if(!count()) view = "shop"; render(); }
 function setF(k,v){ form[k] = v; }
+
+/* ---------- mahsulot sahifasi ---------- */
+async function openP(id){
+  curId = id; sel = {size:"", color:""}; view = "product";
+  window.scrollTo(0,0); render();
+  if(!detail[id]){
+    try{ const r = await fetch("/api/products/" + id); if(r.ok) detail[id] = await r.json(); }catch(e){}
+    if(view === "product" && curId === id) render();
+  }
+}
+function galScroll(el){
+  const i = Math.round(el.scrollLeft / el.clientWidth);
+  document.querySelectorAll("#dots i").forEach((d,k) => d.classList.toggle("on", k === i));
+}
+function selV(k,i){
+  const d = detail[curId]; const arr = k === "size" ? d.sizes : d.colors;
+  sel[k] = arr[i];
+  document.querySelectorAll('.vchip[data-k="' + k + '"]').forEach(b => b.classList.toggle("on", +b.dataset.i === i));
+}
+function addFromPage(){
+  const d = detail[curId]; if(!d) return;
+  if(d.sizes.length && !sel.size){ alertMsg(t("pickSize")); return; }
+  if(d.colors.length && !sel.color){ alertMsg(t("pickColor")); return; }
+  addLine(curId, d.sizes.length ? sel.size : "", d.colors.length ? sel.color : "");
+  view = "shop"; window.scrollTo(0,0); render();
+}
+
+function productView(){
+  const p = P(curId);
+  if(!p){ view = "shop"; return shop(); }
+  const d = detail[curId];
+  const imgs = d ? d.images : (p.img ? [p.img] : []);
+  const gal = imgs.length
+    ? `<div class="gwrap"><button class="pback" onclick="go('shop')">←</button>
+       <div class="gal" onscroll="galScroll(this)">${imgs.map(u => `<img src="${u}" alt="">`).join("")}</div>
+       ${imgs.length > 1 ? `<div class="dots" id="dots">${imgs.map((_,i) => `<i class="${i===0?'on':''}"></i>`).join("")}</div>` : ""}</div>`
+    : `<div class="gwrap"><button class="pback" onclick="go('shop')">←</button><div class="nogal">📦</div></div>`;
+  const sale = p.old_price && p.old_price > p.price;
+  let vars = "";
+  if(d){
+    if(d.sizes.length) vars += `<div class="vlabel">${t("size")}</div><div class="vchips">${d.sizes.map((s,i) => `<button class="vchip ${sel.size===s?'on':''}" data-k="size" data-i="${i}" onclick="selV('size',${i})">${esc(s)}</button>`).join("")}</div>`;
+    if(d.colors.length) vars += `<div class="vlabel">${t("color")}</div><div class="vchips">${d.colors.map((s,i) => `<button class="vchip ${sel.color===s?'on':''}" data-k="color" data-i="${i}" onclick="selV('color',${i})">${esc(s)}</button>`).join("")}</div>`;
+  }
+  const desc = d ? (lang === "ru" ? d.desc_ru : d.desc_uz) : "";
+  const body = `<div class="pbody"><h1 class="ptitle">${esc(pname(p))}</h1>
+    <div class="pprice">${fmt(p.price)}${sale ? `<span class="old">${fmt(p.old_price)}</span>` : ""}</div>
+    ${d ? vars : `<div class="empty" style="padding:30px 0">${t("loading")}</div>`}
+    ${desc ? `<div class="pdesc"><h4>${t("about")}</h4>${esc(desc)}</div>` : ""}</div>`;
+  const bar = `<button class="bar" ${d ? "" : "disabled"} onclick="addFromPage()"><span>${t("toCart")}</span><span>${fmt(p.price)}</span></button>`;
+  return gal + body + bar;
+}
 
 function header(){
   return `<header><h1>${esc(SHOP[0])} <span>${esc(SHOP[1])}</span></h1>
@@ -135,10 +216,10 @@ function shop(){
   else {
     const list = products.filter(p => cat==="all" ? true : cat==="sale" ? (p.old_price && p.old_price>p.price) : p.cat===cat);
     body = list.length ? `<div class="grid">` + list.map(p=>`
-      <div class="card"><div class="pic">${pic(p)}${p.old_price&&p.old_price>p.price?`<span class="badge">-${Math.round((1-p.price/p.old_price)*100)}%</span>`:""}</div>
-      <div class="info"><div class="name">${esc(pname(p))}</div>
+      <div class="card"><div class="pic" onclick="openP(${p.id})">${pic(p)}${p.old_price&&p.old_price>p.price?`<span class="badge">-${Math.round((1-p.price/p.old_price)*100)}%</span>`:""}</div>
+      <div class="info"><div class="name" onclick="openP(${p.id})">${esc(pname(p))}</div>
       <div><span class="price">${fmt(p.price)}</span>${p.old_price&&p.old_price>p.price?`<span class="old">${fmt(p.old_price)}</span>`:""}</div>
-      <button class="add" onclick="add(${p.id})">${t("add")}</button></div></div>`).join("") + `</div>`
+      <button class="add" onclick="${p.has_var ? `openP(${p.id})` : `quickAdd(${p.id})`}">${p.has_var ? t("choose") : t("add")}</button></div></div>`).join("") + `</div>`
       : `<div class="empty">${t("noprod")}</div>`;
   }
   const bar = count() ? `<button class="bar" onclick="go('cart')"><span>🛒 ${t("cart")} · ${count()}</span><span>${fmt(total())}</span></button>` : "";
@@ -146,11 +227,12 @@ function shop(){
 }
 
 function cartView(){
-  const rows = Object.entries(cart).filter(([id])=>P(id)).map(([id,q])=>{
-    const p = P(id);
+  const rows = cart.map((l,i)=>{
+    const p = P(l.id); if(!p) return "";
+    const v = [l.size, l.color].filter(Boolean).join(", ");
     return `<div class="row"><div class="em">${pic(p)}</div>
-    <div class="mid"><div class="name">${esc(pname(p))}</div><div class="price">${fmt(p.price*q)}</div></div>
-    <div class="qty"><button onclick="chg(${p.id},-1)">−</button><b>${q}</b><button onclick="chg(${p.id},1)">+</button></div></div>`;
+    <div class="mid"><div class="name">${esc(pname(p))}</div>${v?`<div class="var">${esc(v)}</div>`:""}<div class="price">${fmt(p.price*l.qty)}</div></div>
+    <div class="qty"><button onclick="chg(${i},-1)">−</button><b>${l.qty}</b><button onclick="chg(${i},1)">+</button></div></div>`;
   }).join("");
   return header()+`<div class="page"><button class="back" onclick="go('shop')">${t("back")}</button>
   <h2>${t("cart")}</h2>${rows || `<div class="empty">${t("empty")}</div>`}
@@ -197,11 +279,11 @@ async function send(){
       body: JSON.stringify({
         name:form.name.trim(), phone:form.phone.trim(),
         region:REGIONS[lang][form.region], city:form.city.trim(), post:form.post.trim(), lang,
-        items:Object.entries(cart).filter(([id])=>P(id)).map(([id,q])=>({id:+id,qty:q}))
+        items:cart.filter(l=>P(l.id)).map(l=>({id:+l.id,qty:l.qty,size:l.size,color:l.color}))
       })
     });
     if(!r.ok) throw new Error(r.status);
-    cart = {}; view = "done";
+    cart = []; view = "done";
   }catch(e){ alertMsg(t("error")); }
   busy = false; render();
 }
@@ -212,7 +294,7 @@ function done(){
 }
 
 function render(){
-  const v = {shop,cart:cartView,checkout,pay,done}[view];
+  const v = {shop,product:productView,cart:cartView,checkout,pay,done}[view];
   document.getElementById("app").innerHTML = v();
 }
 render();

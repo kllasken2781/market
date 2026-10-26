@@ -26,8 +26,10 @@ header span{color:var(--or)}
 .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;background:#eee;color:#555;margin-left:6px}
 .fab{position:fixed;left:12px;right:12px;bottom:12px;background:var(--or);color:#fff;border:0;border-radius:14px;padding:15px;font-size:16px;font-weight:800;box-shadow:0 6px 18px rgba(255,122,0,.35)}
 label{display:block;font-size:13px;font-weight:600;margin:14px 0 6px;color:var(--gr)}
-input,select{width:100%;padding:13px;border:1px solid var(--ln);border-radius:12px;font-size:16px;background:#fff;color:var(--bk)}
-input:focus,select:focus{outline:2px solid var(--or);border-color:var(--or)}
+input,select,textarea{width:100%;padding:13px;border:1px solid var(--ln);border-radius:12px;font-size:16px;background:#fff;color:var(--bk);font-family:inherit}
+textarea{min-height:110px;resize:vertical;line-height:1.4}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--or);border-color:var(--or)}
+.hint{font-size:12px;color:var(--gr);margin-top:4px}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .calc{background:var(--or2);border-radius:12px;padding:12px;margin-top:14px;font-weight:700;display:flex;justify-content:space-between}
 .btn{width:100%;margin-top:16px;border:0;background:var(--or);color:#fff;border-radius:14px;padding:15px;font-size:16px;font-weight:800}
@@ -35,8 +37,13 @@ input:focus,select:focus{outline:2px solid var(--or);border-color:var(--or)}
 .btn.del{background:#fdecea;color:var(--rd)}
 .btn:disabled{opacity:.6}
 .back{border:0;background:none;color:var(--or);font-weight:700;font-size:15px;padding:12px 0 0}
-.photo{display:flex;gap:12px;align-items:center;margin-top:6px}
-.photo .thumb{width:84px;height:84px}
+.imgs{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.im{position:relative;width:84px;height:84px;border-radius:12px;overflow:hidden;background:var(--or2)}
+.im img{width:100%;height:100%;object-fit:cover;display:block}
+.im .x{position:absolute;top:3px;right:3px;width:24px;height:24px;border-radius:50%;border:0;background:rgba(0,0,0,.7);color:#fff;font-size:14px;line-height:1;padding:0}
+.im .mk{position:absolute;left:0;bottom:0;right:0;background:var(--or);color:#fff;font-size:10px;font-weight:700;text-align:center;padding:2px 0}
+.im .fst{position:absolute;bottom:3px;left:3px;border:0;border-radius:6px;background:rgba(0,0,0,.7);color:#fff;font-size:10px;padding:3px 6px}
+.addim{width:84px;height:84px;border-radius:12px;border:2px dashed var(--or);color:var(--or);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700;cursor:pointer}
 .sw{display:flex;align-items:center;gap:10px;margin-top:16px;font-weight:600}
 .sw input{width:22px;height:22px}
 .msg{text-align:center;color:var(--gr);padding:60px 20px}
@@ -58,7 +65,8 @@ if (tg) { tg.ready(); tg.expand(); }
 
 const CATS = {kiyim:"Kiyim", elektr:"Elektronika", uy:"Uy-ro'zg'or"};
 const STATUS = {wait_receipt:"Chek kutilmoqda", checking:"Tekshirilmoqda", paid:"To'langan", rejected:"Rad etilgan"};
-let tab = "products", list = [], ords = [], f = null, saving = false, denied = "";
+const MAXIMG = 6;
+let tab = "products", list = [], ords = [], f = null, saving = false, denied = "", opening = false;
 
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const money = n => Number(n||0).toLocaleString("ru-RU") + " so'm";
@@ -71,7 +79,7 @@ async function api(path, method="GET", body){
   });
   if(!r.ok){
     let d = ""; try{ d = (await r.json()).detail }catch(e){}
-    const err = new Error(d || r.status); err.status = r.status; throw err;
+    const err = new Error(typeof d === "string" && d ? d : r.status); err.status = r.status; throw err;
   }
   return r.json();
 }
@@ -108,23 +116,38 @@ function listView(){
     <button class="fab" onclick="edit(0)">+ Mahsulot qo'shish</button>`;
 }
 
-function edit(id){
-  const p = list.find(x=>x.id===id);
-  f = p ? {id:p.id, name_uz:p.name_uz, name_ru:p.name_ru, cat:p.cat, cost:p.cost, price:p.price,
-           old_price:p.old_price||"", active:p.active, img:p.img, image:undefined}
-        : {id:0, name_uz:"", name_ru:"", cat:"kiyim", cost:"", price:"", old_price:"", active:true, img:null, image:undefined};
-  window.scrollTo(0,0); render();
+const blank = () => ({id:0, name_uz:"", name_ru:"", cat:"kiyim", cost:"", price:"", old_price:"", active:true,
+                      desc_uz:"", desc_ru:"", sizes:"", colors:"", images:[]});
+
+async function edit(id){
+  if(opening) return;
+  if(!id){ f = blank(); window.scrollTo(0,0); render(); return; }
+  opening = true;
+  try{
+    const p = await api("/api/admin/products/" + id);
+    f = {id:p.id, name_uz:p.name_uz, name_ru:p.name_ru, cat:p.cat, cost:p.cost, price:p.price, old_price:p.old_price||"",
+         active:p.active, desc_uz:p.desc_uz, desc_ru:p.desc_ru, sizes:p.sizes, colors:p.colors,
+         images:p.images.map(i => ({id:i.id, url:i.url}))};
+    window.scrollTo(0,0); render();
+  }catch(e){ alertMsg("Ochib bo'lmadi: " + e.message); }
+  opening = false;
+}
+
+function imgsHtml(){
+  const ims = f.images.map((im,i)=>`<div class="im"><img src="${im.url || im.data}" alt="">
+    <button class="x" onclick="rmImg(${i})">✕</button>
+    ${i===0 ? '<span class="mk">ASOSIY</span>' : `<button class="fst" onclick="firstImg(${i})">asosiy qil</button>`}</div>`).join("");
+  const add = f.images.length < MAXIMG
+    ? `<label class="addim">+<input type="file" accept="image/*" multiple style="display:none" onchange="pickImgs(this)"></label>` : "";
+  return ims + add;
 }
 
 function formView(){
   const co = Object.entries(CATS).map(([k,v])=>`<option value="${k}" ${f.cat===k?"selected":""}>${v}</option>`).join("");
   return `<div class="wrap"><button class="back" onclick="f=null;render()">← Orqaga</button>
   <h2 style="margin:10px 0 0">${f.id?"Tahrirlash":"Yangi mahsulot"}</h2>
-  <label>Rasm</label>
-  <div class="photo"><div class="thumb" id="pv">${f.img?`<img src="${f.img}" alt="">`:"📦"}</div>
-  <div><label class="btn sec" style="margin:0;padding:11px 16px;display:inline-block;color:var(--bk)">Rasm tanlash
-  <input type="file" accept="image/*" style="display:none" onchange="pickImg(this)"></label>
-  ${f.img?`<div><button class="back" onclick="rmImg()">Rasmni o'chirish</button></div>`:""}</div></div>
+  <label>Rasmlar (${MAXIMG} tagacha, birinchisi asosiy)</label>
+  <div class="imgs" id="imgs">${imgsHtml()}</div>
   <label>Nomi (o'zbekcha)</label><input value="${esc(f.name_uz)}" oninput="f.name_uz=this.value">
   <label>Nomi (ruscha, bo'sh qolsa o'zbekcha ishlatiladi)</label><input value="${esc(f.name_ru)}" oninput="f.name_ru=this.value">
   <label>Kategoriya</label><select onchange="f.cat=this.value">${co}</select>
@@ -132,6 +155,12 @@ function formView(){
   <div><label>Sotuv narxi (so'm)</label><input type="number" inputmode="numeric" value="${f.price}" oninput="f.price=this.value;calc()"></div></div>
   <div class="calc"><span>Foyda</span><span id="pf"></span></div>
   <label>Eski narx (chegirma uchun, ixtiyoriy)</label><input type="number" inputmode="numeric" value="${f.old_price}" oninput="f.old_price=this.value">
+  <label>Tavsif (o'zbekcha)</label><textarea placeholder="Material, o'lchamlar, afzalliklar..." oninput="f.desc_uz=this.value">${esc(f.desc_uz)}</textarea>
+  <label>Tavsif (ruscha, bo'sh qolsa o'zbekcha ko'rinadi)</label><textarea oninput="f.desc_ru=this.value">${esc(f.desc_ru)}</textarea>
+  <label>O'lchamlar (ixtiyoriy)</label><input placeholder="S, M, L, XL" value="${esc(f.sizes)}" oninput="f.sizes=this.value">
+  <div class="hint">Vergul bilan ajrating. Bo'sh qoldirsangiz, mijoz o'lcham tanlamaydi.</div>
+  <label>Ranglar (ixtiyoriy)</label><input placeholder="Qora, Oq, Qizil" value="${esc(f.colors)}" oninput="f.colors=this.value">
+  <div class="hint">Ranglarni ham vergul bilan yozing. Bo'sh qoldirsangiz, tanlanmaydi.</div>
   <div class="sw"><input type="checkbox" ${f.active?"checked":""} onchange="f.active=this.checked"> Do'konda ko'rsatish</div>
   <button class="btn" id="sv" onclick="save()">Saqlash</button>
   ${f.id?`<button class="btn del" onclick="del()">O'chirish</button>`:""}</div>`;
@@ -149,7 +178,7 @@ function compress(file){
     rd.onload = ()=>{
       const img = new Image();
       img.onload = ()=>{
-        const M = 800, k = Math.min(1, M/Math.max(img.width, img.height));
+        const M = 900, k = Math.min(1, M/Math.max(img.width, img.height));
         const w = Math.round(img.width*k), h = Math.round(img.height*k);
         const c = document.createElement("canvas"); c.width = w; c.height = h;
         c.getContext("2d").drawImage(img, 0, 0, w, h);
@@ -161,15 +190,18 @@ function compress(file){
   });
 }
 
-async function pickImg(inp){
-  const file = inp.files[0]; if(!file) return;
-  try{
-    const d = await compress(file);
-    f.image = d; f.img = d;
-    document.getElementById("pv").innerHTML = `<img src="${d}" alt="">`;
-  }catch(e){ alertMsg("Rasmni o'qib bo'lmadi"); }
+async function pickImgs(inp){
+  const files = Array.from(inp.files || []);
+  inp.value = "";
+  for(const file of files){
+    if(f.images.length >= MAXIMG) break;
+    try{ f.images.push({data: await compress(file)}); }
+    catch(e){ alertMsg("Rasmni o'qib bo'lmadi"); }
+  }
+  const box = document.getElementById("imgs"); if(box) box.innerHTML = imgsHtml();
 }
-function rmImg(){ f.image = ""; f.img = null; render(); }
+function rmImg(i){ f.images.splice(i,1); document.getElementById("imgs").innerHTML = imgsHtml(); }
+function firstImg(i){ const [x] = f.images.splice(i,1); f.images.unshift(x); document.getElementById("imgs").innerHTML = imgsHtml(); }
 
 async function save(){
   if(saving) return;
@@ -177,8 +209,9 @@ async function save(){
   if(!(+f.price > 0)){ alertMsg("Sotuv narxini kiriting"); return; }
   saving = true; const b = document.getElementById("sv"); if(b){ b.disabled = true; b.textContent = "Saqlanmoqda..."; }
   const body = {name_uz:f.name_uz.trim(), name_ru:f.name_ru.trim(), cat:f.cat, cost:+f.cost||0, price:+f.price,
-                old_price:+f.old_price||null, active:f.active};
-  if(f.image !== undefined) body.image = f.image;
+                old_price:+f.old_price||null, active:f.active,
+                desc_uz:f.desc_uz, desc_ru:f.desc_ru, sizes:f.sizes, colors:f.colors,
+                images:f.images.map(im => im.id ? {id:im.id} : {data:im.data})};
   try{
     if(f.id) await api("/api/admin/products/"+f.id, "PUT", body);
     else await api("/api/admin/products", "POST", body);

@@ -17,8 +17,9 @@ from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 from sqlalchemy import (
     BigInteger, Boolean, Column, Integer, MetaData, String, Table, Text,
-    create_engine, delete, desc, insert, select, update,
+    create_engine, delete, desc, insert, inspect, select, update,
 )
+from sqlalchemy import text as sql_text
 
 # =====================  SOZLAMALAR (Render'da Environment orqali)  =====================
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -37,6 +38,7 @@ if DB_URL.startswith("postgresql://"):
     DB_URL = DB_URL.replace("postgresql://", "postgresql+psycopg://", 1)   # psycopg 3 drayveri
 
 CATS = {"kiyim", "elektr", "uy"}
+MAX_IMAGES = 6
 
 # =====================  BAZA  =====================
 engine = create_engine(
@@ -55,10 +57,22 @@ products = Table(
     Column("cost", BigInteger, nullable=False, default=0),     # Pinduoduo narxi (so'm)
     Column("price", BigInteger, nullable=False),               # sotuv narxi (so'm)
     Column("old_price", BigInteger),                           # eski narx (chegirma uchun)
-    Column("image", Text),                                     # data URL
+    Column("image", Text),                                     # ESKI ustun: ishga tushganda galereyaga ko'chiriladi
     Column("has_img", Boolean, nullable=False, default=False),
     Column("active", Boolean, nullable=False, default=True),
     Column("updated", Integer, nullable=False, default=0),
+    Column("desc_uz", Text),
+    Column("desc_ru", Text),
+    Column("sizes", Text),                                     # "S, M, L" ko'rinishida
+    Column("colors", Text),                                    # "Qora, Oq" ko'rinishida
+)
+
+product_images = Table(
+    "product_images", md,
+    Column("id", Integer, primary_key=True),
+    Column("product_id", Integer, nullable=False, index=True),
+    Column("data", Text, nullable=False),                      # data URL
+    Column("pos", Integer, nullable=False, default=0),
 )
 
 orders = Table(
@@ -79,6 +93,27 @@ orders = Table(
 )
 
 PRODUCT_COLS = [c for c in products.c if c.name != "image"]
+
+
+def migrate():
+    """Jadvallarni yaratadi, eski bazaga yangi ustunlarni qo'shadi, eski rasmni galereyaga ko'chiradi."""
+    md.create_all(engine)
+    cols = {c["name"] for c in inspect(engine).get_columns("products")}
+    with engine.begin() as c:
+        for name in ("desc_uz", "desc_ru", "sizes", "colors"):
+            if name not in cols:
+                c.execute(sql_text(f"ALTER TABLE products ADD COLUMN {name} TEXT"))
+    with engine.begin() as c:
+        rows = c.execute(select(products.c.id, products.c.image).where(products.c.image.isnot(None))).all()
+        for pid, img in rows:
+            if img:
+                has = c.execute(select(product_images.c.id).where(product_images.c.product_id == pid).limit(1)).first()
+                if not has:
+                    c.execute(insert(product_images).values(product_id=pid, data=img, pos=0))
+                c.execute(update(products).where(products.c.id == pid).values(image=None, has_img=True))
+            else:
+                c.execute(update(products).where(products.c.id == pid).values(image=None))
+
 
 # =====================  BOT  =====================
 bot = telebot.TeleBot(BOT_TOKEN or "0:local", threaded=False)
@@ -232,6 +267,11 @@ def require_admin(init_data: str) -> dict:
 
 
 # =====================  MODELLAR  =====================
+class ImgIn(BaseModel):
+    id: Optional[int] = None         # mavjud rasm
+    data: Optional[str] = None       # yangi rasm (data URL)
+
+
 class ProductIn(BaseModel):
     name_uz: str
     name_ru: str = ""
@@ -239,13 +279,19 @@ class ProductIn(BaseModel):
     cost: int = 0
     price: int
     old_price: Optional[int] = None
-    image: Optional[str] = None      # None = o'zgarmaydi, "" = o'chirish, data URL = yangi rasm
     active: bool = True
+    desc_uz: str = ""
+    desc_ru: str = ""
+    sizes: str = ""                  # "S, M, L"
+    colors: str = ""                 # "Qora, Oq"
+    images: Optional[List[ImgIn]] = None   # None = rasmlar o'zgarmaydi; ro'yxat = shu tartibda saqlanadi
 
 
 class OrderItem(BaseModel):
     id: int
     qty: int
+    size: str = ""
+    color: str = ""
 
 
 class OrderIn(BaseModel):
@@ -256,6 +302,10 @@ class OrderIn(BaseModel):
     post: str
     lang: str = "uz"
     items: List[OrderItem]
+
+
+def split_opts(s):
+    return [x.strip() for x in (s or "").split(",") if x.strip()]
 
 
 def clean_image(s):
@@ -275,18 +325,61 @@ def check_product(p: ProductIn):
         raise HTTPException(400, "Narx noto'g'ri")
 
 
+def prod_vals(p: ProductIn):
+    return dict(
+        name_uz=p.name_uz.strip(), name_ru=(p.name_ru or p.name_uz).strip(), cat=p.cat,
+        cost=p.cost, price=p.price, old_price=p.old_price or None, active=p.active,
+        desc_uz=p.desc_uz.strip(), desc_ru=p.desc_ru.strip(),
+        sizes=", ".join(split_opts(p.sizes)), colors=", ".join(split_opts(p.colors)),
+        updated=int(time.time()),
+    )
+
+
+def save_images(c, pid, imgs):
+    existing = set(c.execute(select(product_images.c.id).where(product_images.c.product_id == pid)).scalars())
+    keep = []
+    for pos, im in enumerate(imgs[:MAX_IMAGES]):
+        if im.id and im.id in existing:
+            c.execute(update(product_images).where(product_images.c.id == im.id).values(pos=pos))
+            keep.append(im.id)
+        elif im.data:
+            data = clean_image(im.data)
+            r = c.execute(insert(product_images).values(product_id=pid, data=data, pos=pos))
+            keep.append(r.inserted_primary_key[0])
+    c.execute(delete(product_images).where(product_images.c.product_id == pid,
+                                           product_images.c.id.notin_(keep)))
+    c.execute(update(products).where(products.c.id == pid).values(has_img=bool(keep)))
+
+
+def image_ids(c, pid):
+    return list(c.execute(
+        select(product_images.c.id).where(product_images.c.product_id == pid)
+        .order_by(product_images.c.pos, product_images.c.id)
+    ).scalars())
+
+
 def pub(r):
     return {
         "id": r["id"], "name_uz": r["name_uz"], "name_ru": r["name_ru"] or r["name_uz"],
         "cat": r["cat"], "price": r["price"], "old_price": r["old_price"],
         "img": f"/img/{r['id']}?v={r['updated']}" if r["has_img"] else None,
+        "has_var": bool(split_opts(r["sizes"]) or split_opts(r["colors"])),
     }
+
+
+def serve_data_url(img):
+    if not img or "," not in img:
+        raise HTTPException(404)
+    head, b64 = img.split(",", 1)
+    mime = head[5:].split(";")[0] or "image/jpeg"
+    return Response(base64.b64decode(b64), media_type=mime,
+                    headers={"Cache-Control": "public, max-age=31536000"})
 
 
 # =====================  ILOVA  =====================
 @asynccontextmanager
 async def lifespan(app):
-    md.create_all(engine)
+    migrate()
     if BOT_TOKEN and PUBLIC_URL:
         try:
             bot.set_webhook(url=f"{PUBLIC_URL}/webhook/{SECRET}", allowed_updates=["message", "callback_query"])
@@ -340,16 +433,40 @@ def api_products():
     return [pub(r) for r in rows]
 
 
+@app.get("/api/products/{pid}")
+def api_product(pid: int):
+    with engine.connect() as c:
+        r = c.execute(
+            select(*PRODUCT_COLS).where(products.c.id == pid, products.c.active == True)  # noqa: E712
+        ).mappings().first()
+        if not r:
+            raise HTTPException(404)
+        ids = image_ids(c, pid)
+    d = pub(r)
+    d.update(
+        desc_uz=r["desc_uz"] or "", desc_ru=r["desc_ru"] or r["desc_uz"] or "",
+        sizes=split_opts(r["sizes"]), colors=split_opts(r["colors"]),
+        images=[f"/pimg/{i}" for i in ids],
+    )
+    return d
+
+
 @app.get("/img/{pid}")
 def api_img(pid: int):
+    """Mahsulotning asosiy (birinchi) rasmi."""
     with engine.connect() as c:
-        img = c.execute(select(products.c.image).where(products.c.id == pid)).scalar()
-    if not img or "," not in img:
-        raise HTTPException(404)
-    head, b64 = img.split(",", 1)
-    mime = head[5:].split(";")[0] or "image/jpeg"
-    return Response(base64.b64decode(b64), media_type=mime,
-                    headers={"Cache-Control": "public, max-age=31536000"})
+        img = c.execute(
+            select(product_images.c.data).where(product_images.c.product_id == pid)
+            .order_by(product_images.c.pos, product_images.c.id).limit(1)
+        ).scalar()
+    return serve_data_url(img)
+
+
+@app.get("/pimg/{iid}")
+def api_pimg(iid: int):
+    with engine.connect() as c:
+        img = c.execute(select(product_images.c.data).where(product_images.c.id == iid)).scalar()
+    return serve_data_url(img)
 
 
 @app.post("/api/order")
@@ -367,7 +484,19 @@ def api_order(o: OrderIn, x_init_data: str = Header("")):
         p = rows.get(i.id)
         if not p or i.qty < 1 or i.qty > 99:
             raise HTTPException(400, "Mahsulot topilmadi")
-        items.append({"id": i.id, "name": p["name_uz"], "qty": i.qty, "price": p["price"]})
+        sizes, colors = split_opts(p["sizes"]), split_opts(p["colors"])
+        size, color = i.size.strip(), i.color.strip()
+        if sizes and size not in sizes:
+            raise HTTPException(400, "O'lchamni tanlang")
+        if colors and color not in colors:
+            raise HTTPException(400, "Rangni tanlang")
+        if not sizes:
+            size = ""
+        if not colors:
+            color = ""
+        var = ", ".join(x for x in (size, color) if x)
+        name = p["name_uz"] + (f" ({var})" if var else "")
+        items.append({"id": i.id, "name": name, "qty": i.qty, "price": p["price"]})
         total += p["price"] * i.qty
     lang = "ru" if o.lang == "ru" else "uz"
     username = user.get("username")
@@ -407,36 +536,45 @@ def adm_list(x_init_data: str = Header("")):
     return out
 
 
+@app.get("/api/admin/products/{pid}")
+def adm_get(pid: int, x_init_data: str = Header("")):
+    require_admin(x_init_data)
+    with engine.connect() as c:
+        r = c.execute(select(*PRODUCT_COLS).where(products.c.id == pid)).mappings().first()
+        if not r:
+            raise HTTPException(404)
+        ids = image_ids(c, pid)
+    return {
+        "id": r["id"], "name_uz": r["name_uz"], "name_ru": r["name_ru"], "cat": r["cat"],
+        "cost": r["cost"], "price": r["price"], "old_price": r["old_price"], "active": r["active"],
+        "desc_uz": r["desc_uz"] or "", "desc_ru": r["desc_ru"] or "",
+        "sizes": r["sizes"] or "", "colors": r["colors"] or "",
+        "images": [{"id": i, "url": f"/pimg/{i}"} for i in ids],
+    }
+
+
 @app.post("/api/admin/products")
 def adm_create(p: ProductIn, x_init_data: str = Header("")):
     require_admin(x_init_data)
     check_product(p)
-    img = clean_image(p.image)
     with engine.begin() as c:
-        r = c.execute(insert(products).values(
-            name_uz=p.name_uz.strip(), name_ru=(p.name_ru or p.name_uz).strip(), cat=p.cat,
-            cost=p.cost, price=p.price, old_price=p.old_price or None,
-            image=img, has_img=bool(img), active=p.active, updated=int(time.time()),
-        ))
-        return {"id": r.inserted_primary_key[0]}
+        r = c.execute(insert(products).values(**prod_vals(p), image=None, has_img=False))
+        pid = r.inserted_primary_key[0]
+        if p.images:
+            save_images(c, pid, p.images)
+    return {"id": pid}
 
 
 @app.put("/api/admin/products/{pid}")
 def adm_update(pid: int, p: ProductIn, x_init_data: str = Header("")):
     require_admin(x_init_data)
     check_product(p)
-    vals = dict(
-        name_uz=p.name_uz.strip(), name_ru=(p.name_ru or p.name_uz).strip(), cat=p.cat,
-        cost=p.cost, price=p.price, old_price=p.old_price or None,
-        active=p.active, updated=int(time.time()),
-    )
-    if p.image is not None:
-        img = clean_image(p.image)
-        vals.update(image=img, has_img=bool(img))
     with engine.begin() as c:
-        res = c.execute(update(products).where(products.c.id == pid).values(**vals))
+        res = c.execute(update(products).where(products.c.id == pid).values(**prod_vals(p)))
         if res.rowcount == 0:
             raise HTTPException(404)
+        if p.images is not None:
+            save_images(c, pid, p.images)
     return {"ok": True}
 
 
@@ -444,6 +582,7 @@ def adm_update(pid: int, p: ProductIn, x_init_data: str = Header("")):
 def adm_delete(pid: int, x_init_data: str = Header("")):
     require_admin(x_init_data)
     with engine.begin() as c:
+        c.execute(delete(product_images).where(product_images.c.product_id == pid))
         c.execute(delete(products).where(products.c.id == pid))
     return {"ok": True}
 
