@@ -33,6 +33,8 @@ SECRET = hashlib.sha256(BOT_TOKEN.encode()).hexdigest()[:32]
 DB_URL = os.environ.get("DATABASE_URL") or ("sqlite:///" + os.path.join(BASE, "data.db"))
 if DB_URL.startswith("postgres://"):
     DB_URL = DB_URL.replace("postgres://", "postgresql://", 1)
+if DB_URL.startswith("postgresql://"):
+    DB_URL = DB_URL.replace("postgresql://", "postgresql+psycopg://", 1)   # psycopg 3 drayveri
 
 CATS = {"kiyim", "elektr", "uy"}
 
