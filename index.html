@@ -34,6 +34,12 @@ header h1 .s{color:var(--tx)}
 .pic{height:140px;background:var(--or2);display:flex;align-items:center;justify-content:center;font-size:56px;position:relative}
 .pic img{width:100%;height:100%;object-fit:cover;display:block}
 .badge{position:absolute;top:8px;left:8px;background:#141414;color:#fff;font-size:11px;font-weight:700;padding:3px 7px;border-radius:6px}
+.fav{position:absolute;top:6px;right:6px;width:32px;height:32px;border-radius:50%;border:0;background:rgba(255,255,255,.88);font-size:17px;line-height:32px;padding:0;color:#999;z-index:2}
+.fav.on{color:#e53935}
+.so{position:absolute;left:0;right:0;bottom:0;background:rgba(20,20,20,.78);color:#fff;text-align:center;font-weight:700;font-size:13px;padding:5px}
+.add:disabled{opacity:.5}
+.pfav{position:absolute;top:10px;right:10px;z-index:3;width:38px;height:38px;border-radius:50%;border:0;background:rgba(255,255,255,.9);font-size:20px;color:#999;padding:0}
+.pfav.on{color:#e53935}
 .info{padding:10px;display:flex;flex-direction:column;gap:4px;flex:1}
 .name{font-size:14px;font-weight:600;line-height:1.25}
 .price{font-size:15px;font-weight:800;color:var(--or)}
@@ -130,7 +136,7 @@ const T = {
       noOrders:"Hali buyurtmalar yo'q",refresh:"Yangilash",profileT:"Profil",save:"Saqlash",saved:"Saqlandi ✓",
       profileHint:"Ma'lumotlaringiz saqlanadi va buyurtma berishda avtomatik to'ldiriladi.",
       supportT:"Qo'llab-quvvatlash",supportX:"Savolingiz bormi? Quyidagilarga Telegramda yozing:",noSupport:"Aloqa ma'lumotlari tez orada qo'shiladi.",
-      wait_receipt:"Chek kutilmoqda",checking:"To'lov tekshirilmoqda",paid:"To'lov tasdiqlandi",rejected:"To'lov rad etildi",
+      fav:"❤️",soldOut:"Tugadi",wait_receipt:"Chek kutilmoqda",checking:"To'lov tekshirilmoqda",paid:"To'lov tasdiqlandi",rejected:"To'lov rad etildi",
       viewOrders:"Buyurtmalarimga o'tish",tgAcc:"Telegram akkauntingiz"},
   ru:{all:"Все",kiyim:"Одежда",elektr:"Электроника",uy:"Для дома",sale:"Скидки",add:"В корзину",choose:"Выбрать",cart:"Корзина",
       empty:"Корзина пуста",total:"Итого",order:"Оформить заказ",back:"← Назад",sum:"сум",
@@ -146,7 +152,7 @@ const T = {
       noOrders:"Заказов пока нет",refresh:"Обновить",profileT:"Профиль",save:"Сохранить",saved:"Сохранено ✓",
       profileHint:"Данные сохраняются и подставляются при оформлении заказа.",
       supportT:"Поддержка",supportX:"Есть вопрос? Напишите нам в Telegram:",noSupport:"Контакты скоро появятся.",
-      wait_receipt:"Ожидается чек",checking:"Оплата проверяется",paid:"Оплата подтверждена",rejected:"Оплата отклонена",
+      fav:"❤️",soldOut:"Нет в наличии",wait_receipt:"Ожидается чек",checking:"Оплата проверяется",paid:"Оплата подтверждена",rejected:"Оплата отклонена",
       viewOrders:"Перейти к моим заказам",tgAcc:"Ваш аккаунт Telegram"}
 };
 const REGIONS = {
@@ -172,6 +178,7 @@ let curId = null, sel = {size:"", color:""}, detail = {};
 let form = {name:"", phone:"+998", region:"", city:"", post:""};
 let me = {tg_name:"", tg_user:""};
 let myOrders = null, ordersBusy = false;
+let favs = [];                       // sevimli mahsulot id lari (bazada ham saqlanadi)
 
 function applyTheme(){ document.documentElement.setAttribute("data-theme", theme); }
 applyTheme();
@@ -191,7 +198,10 @@ async function api(path, method="GET", body){
     headers:{"Content-Type":"application/json","X-Init-Data":(tg && tg.initData) || ""},
     body: body ? JSON.stringify(body) : undefined
   });
-  if(!r.ok) throw new Error(r.status);
+  if(!r.ok){
+    let d = ""; try{ d = (await r.json()).detail; }catch(e){}
+    throw new Error(typeof d === "string" && d ? d : r.status);
+  }
   return r.json();
 }
 
@@ -204,7 +214,8 @@ async function load(){
   render();
   if(canSync){
     try{
-      const [pr, ct] = await Promise.all([api("/api/profile"), api("/api/cart")]);
+      const [pr, ct, fv] = await Promise.all([api("/api/profile"), api("/api/cart"), api("/api/favs")]);
+      favs = fv;
       me = pr;
       if(pr.lang === "uz" || pr.lang === "ru"){ lang = pr.lang; lsSet("lang", lang); }
       if(pr.theme === "dark" || pr.theme === "light"){ theme = pr.theme; lsSet("theme", theme); applyTheme(); }
@@ -227,6 +238,19 @@ function saveCart(){
   cartTimer = setTimeout(() => {
     api("/api/cart", "PUT", {items: cart.filter(l => P(l.id)).map(l => ({id:+l.id, qty:l.qty, size:l.size, color:l.color}))}).catch(()=>{});
   }, 500);
+}
+let favTimer = null;
+function saveFavs(){
+  if(!canSync) return;
+  clearTimeout(favTimer);
+  favTimer = setTimeout(() => { api("/api/favs", "PUT", {ids:favs}).catch(()=>{}); }, 500);
+}
+function toggleFav(id){
+  const i = favs.indexOf(id);
+  if(i >= 0) favs.splice(i,1); else favs.push(id);
+  saveFavs();
+  if(view === "product"){ const b = document.getElementById("pfav"); if(b) b.classList.toggle("on", favs.includes(id)); }
+  else { const g = document.getElementById("grid"); if(g) g.innerHTML = gridHtml(); }
 }
 function savePref(o){ if(canSync) api("/api/profile", "PUT", o).catch(()=>{}); }
 
@@ -260,7 +284,7 @@ function setF(k,v){ form[k] = v; }
 function filtered(){
   const s = q.trim().toLowerCase();
   return products.filter(p => {
-    if(cat === "sale" ? !(p.old_price && p.old_price > p.price) : (cat !== "all" && p.cat !== cat)) return false;
+    if(cat === "fav" ? !favs.includes(p.id) : cat === "sale" ? !(p.old_price && p.old_price > p.price) : (cat !== "all" && p.cat !== cat)) return false;
     return !s || (p.name_uz + " " + p.name_ru).toLowerCase().includes(s);
   });
 }
@@ -273,10 +297,10 @@ function gridHtml(){
   if(!list.length) return `<div class="empty">${t("noprod")}</div>`;
   return `<div class="grid">` + list.map(p => {
     const sale = p.old_price && p.old_price > p.price;
-    return `<div class="card"><div class="pic" onclick="openP(${p.id})">${pic(p)}${sale ? `<span class="badge">-${Math.round((1-p.price/p.old_price)*100)}%</span>` : ""}</div>
+    return `<div class="card"><div class="pic" onclick="openP(${p.id})">${pic(p)}<button class="fav ${favs.includes(p.id)?'on':''}" onclick="event.stopPropagation();toggleFav(${p.id})">${favs.includes(p.id)?'♥':'♡'}</button>${p.sold_out ? `<div class="so">${t("soldOut")}</div>` : ""}${sale ? `<span class="badge">-${Math.round((1-p.price/p.old_price)*100)}%</span>` : ""}</div>
     <div class="info"><div class="name" onclick="openP(${p.id})">${esc(pname(p))}</div>
     <div><span class="price">${fmt(p.price)}</span>${sale ? `<span class="old">${fmt(p.old_price)}</span>` : ""}</div>
-    <button class="add" onclick="${p.has_var ? `openP(${p.id})` : `quickAdd(${p.id})`}">${p.has_var ? t("choose") : t("add")}</button></div></div>`;
+    <button class="add" ${p.sold_out ? "disabled" : ""} onclick="${p.has_var ? `openP(${p.id})` : `quickAdd(${p.id})`}">${p.sold_out ? t("soldOut") : p.has_var ? t("choose") : t("add")}</button></div></div>`;
   }).join("") + `</div>`;
 }
 
@@ -300,6 +324,7 @@ function selV(k,i){
 }
 function addFromPage(){
   const d = detail[curId]; if(!d) return;
+  if(P(curId) && P(curId).sold_out) return;
   if(d.sizes.length && !sel.size){ alertMsg(t("pickSize")); return; }
   if(d.colors.length && !sel.color){ alertMsg(t("pickColor")); return; }
   addLine(curId, d.sizes.length ? sel.size : "", d.colors.length ? sel.color : "");
@@ -311,11 +336,12 @@ function productView(){
   if(!p){ view = "shop"; return shop(); }
   const d = detail[curId];
   const imgs = d ? d.images : (p.img ? [p.img] : []);
+  const fb = `<button class="pfav ${favs.includes(p.id)?'on':''}" id="pfav" onclick="toggleFav(${p.id})">♥</button>`;
   const gal = imgs.length
-    ? `<div class="gwrap"><button class="pback" onclick="go('shop')">←</button>
+    ? `<div class="gwrap">${fb}<button class="pback" onclick="go('shop')">←</button>
        <div class="gal" onscroll="galScroll(this)">${imgs.map(u => `<img src="${u}" alt="">`).join("")}</div>
        ${imgs.length > 1 ? `<div class="dots" id="dots">${imgs.map((_,i) => `<i class="${i===0?'on':''}"></i>`).join("")}</div>` : ""}</div>`
-    : `<div class="gwrap"><button class="pback" onclick="go('shop')">←</button><div class="nogal">📦</div></div>`;
+    : `<div class="gwrap">${fb}<button class="pback" onclick="go('shop')">←</button><div class="nogal">📦</div></div>`;
   const sale = p.old_price && p.old_price > p.price;
   let vars = "";
   if(d){
@@ -327,7 +353,7 @@ function productView(){
     <div class="pprice">${fmt(p.price)}${sale ? `<span class="old">${fmt(p.old_price)}</span>` : ""}</div>
     ${d ? vars : `<div class="empty" style="padding:30px 0">${t("loading")}</div>`}
     ${desc ? `<div class="pdesc"><h4>${t("about")}</h4>${esc(desc)}</div>` : ""}</div>`;
-  const bar = `<button class="bar" ${d ? "" : "disabled"} onclick="addFromPage()"><span>${t("toCart")}</span><span>${fmt(p.price)}</span></button>`;
+  const bar = `<button class="bar" ${d && !p.sold_out ? "" : "disabled"} onclick="addFromPage()"><span>${p.sold_out ? t("soldOut") : t("toCart")}</span><span>${fmt(p.price)}</span></button>`;
   return gal + body + bar;
 }
 
@@ -353,7 +379,7 @@ function cartBar(){
 }
 
 function shop(){
-  const cats = ["all","kiyim","elektr","uy","sale"];
+  const cats = ["all","kiyim","elektr","uy","sale","fav"];
   const chips = cats.map(c=>`<button class="chip ${cat===c?'on':''}" onclick="setCat('${c}')">${t(c)}</button>`).join("");
   return header() + `<div class="sub"><div class="search"><span class="mg">🔍</span><input id="q" type="search" placeholder="${esc(t("search"))}" value="${esc(q)}" oninput="setQ(this.value)"></div>
   <div class="cats">${chips}</div></div><div id="grid">${gridHtml()}</div>` + cartBar() + nav();
@@ -415,7 +441,7 @@ async function send(){
       items:cart.filter(l=>P(l.id)).map(l=>({id:+l.id,qty:l.qty,size:l.size,color:l.color}))
     });
     cart = []; myOrders = null; view = "done";
-  }catch(e){ alertMsg(t("error")); }
+  }catch(e){ alertMsg(isNaN(e.message) ? e.message : t("error")); }
   busy = false; render();
 }
 

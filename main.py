@@ -92,6 +92,7 @@ products = Table(
     Column("desc_ru", Text),
     Column("sizes", Text),                                     # "S, M, L" ko'rinishida
     Column("colors", Text),                                    # "Qora, Oq" ko'rinishida
+    Column("sold_out", Boolean, default=False),                # "Tugadi" belgisi
 )
 
 product_images = Table(
@@ -134,6 +135,13 @@ profiles = Table(
     Column("updated", Integer),
 )
 
+favorites = Table(
+    "favorites", md,
+    Column("id", Integer, primary_key=True),
+    Column("user_id", BigInteger, nullable=False, index=True),
+    Column("product_id", Integer, nullable=False),
+)
+
 cart_items = Table(
     "cart_items", md,
     Column("id", Integer, primary_key=True),
@@ -155,6 +163,8 @@ def migrate():
         for name in ("desc_uz", "desc_ru", "sizes", "colors"):
             if name not in cols:
                 c.execute(sql_text(f"ALTER TABLE products ADD COLUMN {name} TEXT"))
+        if "sold_out" not in cols:
+            c.execute(sql_text("ALTER TABLE products ADD COLUMN sold_out BOOLEAN DEFAULT FALSE"))
     ocols = {c["name"] for c in inspect(engine).get_columns("orders")}
     with engine.begin() as c:
         if "ship" not in ocols:
@@ -344,6 +354,7 @@ class ProductIn(BaseModel):
     price: int
     old_price: Optional[int] = None
     active: bool = True
+    sold_out: bool = False
     desc_uz: str = ""
     desc_ru: str = ""
     sizes: str = ""                  # "S, M, L"
@@ -422,7 +433,7 @@ def check_product(p: ProductIn):
 def prod_vals(p: ProductIn):
     return dict(
         name_uz=p.name_uz.strip(), name_ru=(p.name_ru or p.name_uz).strip(), cat=p.cat,
-        cost=p.cost, price=p.price, old_price=p.old_price or None, active=p.active,
+        cost=p.cost, price=p.price, old_price=p.old_price or None, active=p.active, sold_out=p.sold_out,
         desc_uz=p.desc_uz.strip(), desc_ru=p.desc_ru.strip(),
         sizes=", ".join(split_opts(p.sizes)), colors=", ".join(split_opts(p.colors)),
         updated=int(time.time()),
@@ -458,6 +469,7 @@ def pub(r):
         "cat": r["cat"], "price": r["price"], "old_price": r["old_price"],
         "img": f"/img/{r['id']}?v={r['updated']}" if r["has_img"] else None,
         "has_var": bool(split_opts(r["sizes"]) or split_opts(r["colors"])),
+        "sold_out": bool(r["sold_out"]),
     }
 
 
@@ -498,7 +510,7 @@ def page_admin():
     return FileResponse(os.path.join(BASE, "admin.html"))
 
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 def health():
     return {"ok": True}
 
@@ -578,6 +590,8 @@ def api_order(o: OrderIn, x_init_data: str = Header("")):
         p = rows.get(i.id)
         if not p or i.qty < 1 or i.qty > 99:
             raise HTTPException(400, "Mahsulot topilmadi")
+        if p["sold_out"]:
+            raise HTTPException(400, f"Tugagan: {p['name_uz']}")
         sizes, colors = split_opts(p["sizes"]), split_opts(p["colors"])
         size, color = i.size.strip(), i.color.strip()
         if sizes and size not in sizes:
@@ -591,7 +605,7 @@ def api_order(o: OrderIn, x_init_data: str = Header("")):
         var = ", ".join(x for x in (size, color) if x)
         name = p["name_uz"] + (f" ({var})" if var else "")
         name_ru = (p["name_ru"] or p["name_uz"]) + (f" ({var})" if var else "")
-        items.append({"id": i.id, "name": name, "name_ru": name_ru, "qty": i.qty, "price": p["price"]})
+        items.append({"id": i.id, "name": name, "name_ru": name_ru, "qty": i.qty, "price": p["price"], "cost": p["cost"] or 0})
         total += p["price"] * i.qty
     lang = "ru" if o.lang == "ru" else "uz"
     username = user.get("username")
@@ -688,6 +702,28 @@ def api_cart_put(cart: CartIn, x_init_data: str = Header("")):
     return {"ok": True}
 
 
+class FavIn(BaseModel):
+    ids: List[int]
+
+
+@app.get("/api/favs")
+def api_favs_get(x_init_data: str = Header("")):
+    u = check_init(x_init_data)
+    with engine.connect() as c:
+        return list(c.execute(select(favorites.c.product_id).where(favorites.c.user_id == u["id"]).order_by(favorites.c.id)).scalars())
+
+
+@app.put("/api/favs")
+def api_favs_put(f: FavIn, x_init_data: str = Header("")):
+    u = check_init(x_init_data)
+    ids = list(dict.fromkeys(f.ids))[:200]
+    with engine.begin() as c:
+        c.execute(delete(favorites).where(favorites.c.user_id == u["id"]))
+        for pid in ids:
+            c.execute(insert(favorites).values(user_id=u["id"], product_id=pid))
+    return {"ok": True}
+
+
 @app.get("/api/my/orders")
 def api_my_orders(x_init_data: str = Header("")):
     u = check_init(x_init_data)
@@ -738,6 +774,7 @@ def adm_get(pid: int, x_init_data: str = Header("")):
     return {
         "id": r["id"], "name_uz": r["name_uz"], "name_ru": r["name_ru"], "cat": r["cat"],
         "cost": r["cost"], "price": r["price"], "old_price": r["old_price"], "active": r["active"],
+        "sold_out": bool(r["sold_out"]),
         "desc_uz": r["desc_uz"] or "", "desc_ru": r["desc_ru"] or "",
         "sizes": r["sizes"] or "", "colors": r["colors"] or "",
         "images": [{"id": i, "url": f"/pimg/{i}"} for i in ids],
@@ -816,3 +853,36 @@ def adm_pay(oid: int, p: PayIn, x_init_data: str = Header("")):
     if sent is None:
         raise HTTPException(404)
     return {"ok": True, "sent": sent}
+
+
+@app.get("/api/admin/stats")
+def adm_stats(x_init_data: str = Header("")):
+    """Foyda hisoboti: faqat to'lovi tasdiqlangan buyurtmalar. Foyda = (sotuv narxi - Pinduoduo narxi) x soni."""
+    require_admin(x_init_data)
+    now = int(time.time())
+    tz = 5 * 3600                                   # Toshkent UTC+5
+    day0 = ((now + tz) // 86400) * 86400 - tz       # bugun 00:00 (Toshkent)
+    periods = [("today", "Bugun", day0), ("week", "7 kun", day0 - 6 * 86400),
+               ("month", "30 kun", day0 - 29 * 86400), ("all", "Hammasi", 0)]
+    with engine.connect() as c:
+        rows = c.execute(select(orders.c.items, orders.c.total, orders.c.status, orders.c.created)).all()
+        cost_now = {r[0]: (r[1] or 0) for r in c.execute(select(products.c.id, products.c.cost))}
+    out = {k: {"label": lb, "orders": 0, "revenue": 0, "profit": 0} for k, lb, _ in periods}
+    pending = 0
+    for items_json, total, status, created in rows:
+        if status != "paid":
+            if status in ("wait_receipt", "checking"):
+                pending += 1
+            continue
+        try:
+            items = json.loads(items_json or "[]")
+        except Exception:
+            items = []
+        profit = sum((i.get("price", 0) - i.get("cost", cost_now.get(i.get("id"), 0))) * i.get("qty", 1) for i in items)
+        for k, _, start in periods:
+            if (created or 0) >= start:
+                o = out[k]
+                o["orders"] += 1
+                o["revenue"] += total or 0
+                o["profit"] += profit
+    return {"periods": [out[k] for k, _, _ in periods], "pending": pending}

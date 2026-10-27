@@ -102,6 +102,12 @@ async function loadAll(){
 }
 
 function alertMsg(s){ (tg && tg.showAlert) ? tg.showAlert(s) : alert(s); }
+let stats = null;
+async function openStats(){
+  tab = "stats"; render();
+  try{ stats = await api("/api/admin/stats"); }catch(e){ alertMsg("Xatolik: " + e.message); }
+  render();
+}
 function setTab(t){ tab = t; render(); }
 
 function stageName(o){
@@ -132,7 +138,14 @@ function setPay(id, ok){
 
 function listView(){
   const tabs = `<div class="tabs"><button class="${tab==='products'?'on':''}" onclick="setTab('products')">Mahsulotlar (${list.length})</button>
-  <button class="${tab==='orders'?'on':''}" onclick="setTab('orders')">Buyurtmalar (${ords.length})</button></div>`;
+  <button class="${tab==='orders'?'on':''}" onclick="setTab('orders')">Buyurtmalar (${ords.length})</button>
+  <button class="${tab==='stats'?'on':''}" onclick="openStats()">Hisobot</button></div>`;
+  if(tab === "stats"){
+    if(!stats) return tabs + '<div class="wrap"><div class="msg">Yuklanmoqda...</div></div>';
+    const cards = stats.periods.map(p=>`<div class="ord"><div class="top"><span>${p.label}</span><span>${p.orders} ta buyurtma</span></div>
+      <p>Savdo: <b>${money(p.revenue)}</b></p><p>Sof foyda: <span class="${p.profit>=0?'profit':'loss'}">${money(p.profit)}</span></p></div>`).join("");
+    return tabs + `<div class="wrap">${cards}<p class="hint">Faqat to'lovi tasdiqlangan buyurtmalar hisoblanadi. Foyda = sotuv narxi − Pinduoduo narxi. Hali tasdiqlanmagan: ${stats.pending} ta.</p></div>`;
+  }
   if(tab === "orders"){
     const rows = ords.map(o=>`<div class="ord"><div class="top"><span>#${o.id}</span><span class="st ${o.ship?'ship':o.status}">${stageName(o)}</span></div>
       <p>${o.items.map(i=>esc(i.name)+" × "+i.qty).join("<br>")}</p>
@@ -148,7 +161,7 @@ function listView(){
   }
   const rows = list.map(p=>`<div class="item" onclick="edit(${p.id})">
     <div class="thumb">${p.img?`<img src="${p.img}" alt="">`:"📦"}</div>
-    <div class="mid"><div class="nm">${esc(p.name_uz)}${p.active?"":'<span class="tag">yashirin</span>'}</div>
+    <div class="mid"><div class="nm">${esc(p.name_uz)}${p.active?"":'<span class="tag">yashirin</span>'}${p.sold_out?'<span class="tag">tugadi</span>':""}</div>
     <div class="sub">${CATS[p.cat]} · sotuv ${money(p.price)}</div>
     <div class="sub">foyda: <span class="${p.profit>=0?'profit':'loss'}">${money(p.profit)}</span></div></div></div>`).join("");
   return tabs + `<div class="wrap">${rows || '<div class="msg">Hali mahsulot yo\'q. Pastdagi tugma bilan qo\'shing.</div>'}</div>
@@ -156,7 +169,7 @@ function listView(){
 }
 
 const blank = () => ({id:0, name_uz:"", name_ru:"", cat:"kiyim", cost:"", price:"", old_price:"", active:true,
-                      desc_uz:"", desc_ru:"", sizes:"", colors:"", images:[]});
+                      desc_uz:"", desc_ru:"", sizes:"", colors:"", sold_out:false, images:[]});
 
 async function edit(id){
   if(opening) return;
@@ -165,7 +178,7 @@ async function edit(id){
   try{
     const p = await api("/api/admin/products/" + id);
     f = {id:p.id, name_uz:p.name_uz, name_ru:p.name_ru, cat:p.cat, cost:p.cost, price:p.price, old_price:p.old_price||"",
-         active:p.active, desc_uz:p.desc_uz, desc_ru:p.desc_ru, sizes:p.sizes, colors:p.colors,
+         active:p.active, sold_out:!!p.sold_out, desc_uz:p.desc_uz, desc_ru:p.desc_ru, sizes:p.sizes, colors:p.colors,
          images:p.images.map(i => ({id:i.id, url:i.url}))};
     window.scrollTo(0,0); render();
   }catch(e){ alertMsg("Ochib bo'lmadi: " + e.message); }
@@ -201,6 +214,7 @@ function formView(){
   <label>Ranglar (ixtiyoriy)</label><input placeholder="Qora, Oq, Qizil" value="${esc(f.colors)}" oninput="f.colors=this.value">
   <div class="hint">Ranglarni ham vergul bilan yozing. Bo'sh qoldirsangiz, tanlanmaydi.</div>
   <div class="sw"><input type="checkbox" ${f.active?"checked":""} onchange="f.active=this.checked"> Do'konda ko'rsatish</div>
+  <div class="sw"><input type="checkbox" ${f.sold_out?"checked":""} onchange="f.sold_out=this.checked"> Tugadi (buyurtma qilib bo'lmaydi)</div>
   <button class="btn" id="sv" onclick="save()">Saqlash</button>
   ${f.id?`<button class="btn del" onclick="del()">O'chirish</button>`:""}</div>`;
 }
@@ -248,7 +262,7 @@ async function save(){
   if(!(+f.price > 0)){ alertMsg("Sotuv narxini kiriting"); return; }
   saving = true; const b = document.getElementById("sv"); if(b){ b.disabled = true; b.textContent = "Saqlanmoqda..."; }
   const body = {name_uz:f.name_uz.trim(), name_ru:f.name_ru.trim(), cat:f.cat, cost:+f.cost||0, price:+f.price,
-                old_price:+f.old_price||null, active:f.active,
+                old_price:+f.old_price||null, active:f.active, sold_out:f.sold_out,
                 desc_uz:f.desc_uz, desc_ru:f.desc_ru, sizes:f.sizes, colors:f.colors,
                 images:f.images.map(im => im.id ? {id:im.id} : {data:im.data})};
   try{
