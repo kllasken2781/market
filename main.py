@@ -29,6 +29,7 @@ ADMIN_GROUP_ID = int(os.environ.get("ADMIN_GROUP_ID", "0") or 0)
 CARD = os.environ.get("CARD", "8600 0000 0000 0000")
 CARD_OWNER = os.environ.get("CARD_OWNER", "ISM FAMILIYA")
 PUBLIC_URL = (os.environ.get("PUBLIC_URL") or os.environ.get("RENDER_EXTERNAL_URL") or "").rstrip("/")
+VERSION = str(int(time.time()))      # har deployda yangi: Telegram eski sahifani ushlab qolmasligi uchun
 SECRET = hashlib.sha256(BOT_TOKEN.encode()).hexdigest()[:32]
 
 DB_URL = os.environ.get("DATABASE_URL") or ("sqlite:///" + os.path.join(BASE, "data.db"))
@@ -233,7 +234,7 @@ def h_start(m):
     safe_send(m.chat.id, "👋", reply_markup=types.ReplyKeyboardRemove())
     kb = types.InlineKeyboardMarkup()
     if PUBLIC_URL:
-        kb.add(types.InlineKeyboardButton(L["open"], web_app=types.WebAppInfo(url=PUBLIC_URL + "/")))
+        kb.add(types.InlineKeyboardButton(L["open"], web_app=types.WebAppInfo(url=f"{PUBLIC_URL}/?v={VERSION}")))
     safe_send(m.chat.id, L["welcome"], reply_markup=kb)
 
 
@@ -249,7 +250,7 @@ def h_admin(m):
     if m.chat.type != "private":
         return safe_send(m.chat.id, "Admin panelni bot bilan shaxsiy chatda oching.")
     kb = types.InlineKeyboardMarkup()
-    kb.add(types.InlineKeyboardButton("⚙️ Admin panel", web_app=types.WebAppInfo(url=PUBLIC_URL + "/admin")))
+    kb.add(types.InlineKeyboardButton("⚙️ Admin panel", web_app=types.WebAppInfo(url=f"{PUBLIC_URL}/admin?v={VERSION}")))
     safe_send(m.chat.id, "Admin panel:", reply_markup=kb)
 
 
@@ -490,7 +491,7 @@ async def lifespan(app):
         try:
             bot.set_webhook(url=f"{PUBLIC_URL}/webhook/{SECRET}", allowed_updates=["message", "callback_query"])
             bot.set_chat_menu_button(menu_button=types.MenuButtonWebApp(
-                type="web_app", text="🛍 Do'kon", web_app=types.WebAppInfo(PUBLIC_URL + "/")))
+                type="web_app", text="🛍 Do'kon", web_app=types.WebAppInfo(f"{PUBLIC_URL}/?v={VERSION}")))
             print("Webhook o'rnatildi:", PUBLIC_URL)
         except Exception as e:
             print("Webhook xato:", e)
