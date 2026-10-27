@@ -498,16 +498,17 @@ async def lifespan(app):
 
 
 app = FastAPI(lifespan=lifespan)
+NOCACHE = {"Cache-Control": "no-cache, no-store, must-revalidate"}
 
 
 @app.get("/")
 def page_shop():
-    return FileResponse(os.path.join(BASE, "index.html"))
+    return FileResponse(os.path.join(BASE, "index.html"), headers=NOCACHE)
 
 
 @app.get("/admin")
 def page_admin():
-    return FileResponse(os.path.join(BASE, "admin.html"))
+    return FileResponse(os.path.join(BASE, "admin.html"), headers=NOCACHE)
 
 
 @app.api_route("/health", methods=["GET", "HEAD"])
@@ -865,7 +866,7 @@ def adm_stats(x_init_data: str = Header("")):
     periods = [("today", "Bugun", day0), ("week", "7 kun", day0 - 6 * 86400),
                ("month", "30 kun", day0 - 29 * 86400), ("all", "Hammasi", 0)]
     with engine.connect() as c:
-        rows = c.execute(select(orders.c.items, orders.c.total, orders.c.status, orders.c.created)).all()
+        rows = c.execute(select(orders.c["items"], orders.c.total, orders.c.status, orders.c.created)).all()
         cost_now = {r[0]: (r[1] or 0) for r in c.execute(select(products.c.id, products.c.cost))}
     out = {k: {"label": lb, "orders": 0, "revenue": 0, "profit": 0} for k, lb, _ in periods}
     pending = 0

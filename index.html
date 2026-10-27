@@ -261,6 +261,7 @@ function toast(msg){
 
 function setLang(l){ lang = l; lsSet("lang", l); savePref({lang:l}); render(); }
 function toggleTheme(){ theme = theme === "dark" ? "light" : "dark"; lsSet("theme", theme); applyTheme(); savePref({theme}); render(); }
+function showFavs(){ cat = "fav"; view = "shop"; window.scrollTo(0,0); render(); }
 function setCat(c){ cat = c; render(); }
 function go(v){
   view = v; window.scrollTo(0,0);
@@ -363,6 +364,7 @@ function header(){
   return `<header><h1><span class="l">Lemmon</span> <span class="s">Shop</span></h1>
   <div class="hr"><div class="lang"><button class="${lang==='uz'?'on':''}" onclick="setLang('uz')">UZ</button>
   <button class="${lang==='ru'?'on':''}" onclick="setLang('ru')">RU</button></div>
+  <button class="ib" onclick="showFavs()" aria-label="fav" style="color:#e53935">♥</button>
   <button class="ib" onclick="toggleTheme()" aria-label="theme">${theme==='dark' ? '☀️' : '🌙'}</button>
   <button class="ib" onclick="go('cart')" aria-label="cart">🛒${n ? `<span class="n">${n}</span>` : ""}</button></div></header>`;
 }
