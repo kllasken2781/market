@@ -3,32 +3,38 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Lemmon Shop</title>
+<title>ELECZONA</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-:root{--or:#FF7A00;--or2:#FFF1E3;--tx:#141414;--gr:#6b6b6b;--ln:#ececec;--bg:#fff;--card:#fff;--btn:#141414;--btnt:#fff;--ylw:#F5B800;--sh:rgba(0,0,0,.06)}
-:root[data-theme=dark]{--or2:#2b1d0f;--tx:#f1f1f1;--gr:#a3a3a3;--ln:#2e2e2e;--bg:#121212;--card:#1b1b1b;--btn:#2d2d2d;--btnt:#fff;--sh:rgba(0,0,0,.4)}
+:root{--or:#FED700;--on:#111;--pr:#111;--or2:#FFF8CC;--tx:#141414;--gr:#6b6b6b;--ln:#ececec;--bg:#fff;--card:#fff;--btn:#141414;--btnt:#fff;--ylw:#F5B800;--sh:rgba(0,0,0,.06)}
+:root[data-theme=dark]{--pr:#FED700;--or2:#2a2500;--tx:#f1f1f1;--gr:#a3a3a3;--ln:#2e2e2e;--bg:#121212;--card:#1b1b1b;--btn:#2d2d2d;--btnt:#fff;--sh:rgba(0,0,0,.4)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{background:var(--bg)}
 body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--tx);padding-bottom:90px}
-header{position:sticky;top:0;z-index:10;height:54px;background:var(--bg);border-bottom:1px solid var(--ln);padding:0 14px;display:flex;align-items:center;justify-content:space-between}
-header h1{margin:0;font-size:21px;font-weight:900;letter-spacing:.2px}
-header h1 .l{color:var(--ylw)}
+header{position:sticky;top:0;z-index:10;height:54px;background:var(--bg);border-bottom:1px solid var(--ln);padding:0 14px 0 12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+header h1{margin:0;font-size:17px;font-weight:900;letter-spacing:1px;display:flex;align-items:center;gap:7px;min-width:0}
+.logo{width:30px;height:30px;border-radius:50%;background:var(--or);color:#111;display:flex;align-items:center;justify-content:center;flex:none}
 header h1 .s{color:var(--tx)}
-.hr{display:flex;gap:6px;align-items:center}
+svg{display:block}
+.ib svg{margin:auto}
+.mg svg{width:17px;height:17px}
+.soc{display:flex;gap:22px;justify-content:center;margin:22px 0 6px}
+.soc button{border:0;background:none;color:var(--tx);font-size:13px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:8px}
+.soc button span{width:62px;height:62px;border-radius:50%;background:var(--or);color:#111;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 5px var(--ln)}
+.hr{display:flex;gap:5px;align-items:center;flex:none}
 .lang{display:flex;gap:4px}
-.lang button,.ib{border:1px solid var(--ln);background:var(--card);color:var(--tx);border-radius:10px;height:34px;min-width:34px;padding:0 9px;font-weight:700;font-size:13px;position:relative}
-.lang button.on{background:var(--or);border-color:var(--or);color:#fff}
+.lang button,.ib{border:1px solid var(--ln);background:var(--card);color:var(--tx);border-radius:10px;height:32px;min-width:32px;padding:0 7px;font-weight:700;font-size:13px;position:relative}
+.lang button.on{background:var(--or);border-color:var(--or);color:var(--on)}
 .ib{font-size:16px}
-.ib .n{position:absolute;top:-6px;right:-6px;background:var(--or);color:#fff;border-radius:10px;font-size:10px;min-width:17px;height:17px;line-height:17px;padding:0 4px;text-align:center}
+.ib .n{position:absolute;top:-6px;right:-5px;background:var(--or);color:var(--on);border-radius:10px;font-size:10px;min-width:17px;height:17px;line-height:17px;padding:0 4px;text-align:center}
 .sub{position:sticky;top:54px;z-index:9;background:var(--bg);border-bottom:1px solid var(--ln)}
 .search{padding:10px 14px 0;position:relative}
 .search input{padding-left:40px;border-radius:24px;background:var(--card)}
-.search .mg{position:absolute;left:28px;top:21px;font-size:15px;opacity:.6}
+.search .mg{position:absolute;left:28px;top:25px;opacity:.6;color:var(--tx)}
 .cats{display:flex;gap:8px;overflow-x:auto;padding:10px 14px;scrollbar-width:none}
 .cats::-webkit-scrollbar{display:none}
 .chip{flex:none;border:1px solid var(--ln);background:var(--card);border-radius:20px;padding:8px 16px;font-size:14px;font-weight:600;color:var(--tx)}
-.chip.on{background:var(--or);border-color:var(--or);color:#fff}
+.chip.on{background:var(--or);border-color:var(--or);color:var(--on)}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px}
 .card{border:1px solid var(--ln);border-radius:14px;overflow:hidden;background:var(--card);display:flex;flex-direction:column}
 .pic{height:140px;background:var(--or2);display:flex;align-items:center;justify-content:center;font-size:56px;position:relative}
@@ -49,20 +55,22 @@ header h1 .s{color:var(--tx)}
 .pfav.on{color:#e53935}
 .info{padding:10px;display:flex;flex-direction:column;gap:4px;flex:1}
 .name{font-size:14px;font-weight:600;line-height:1.25}
-.price{font-size:15px;font-weight:800;color:var(--or)}
+.price{font-size:15px;font-weight:800;color:var(--pr)}
 .old{font-size:12px;color:var(--gr);text-decoration:line-through;margin-left:6px;font-weight:400}
 .add{margin-top:auto;border:0;background:var(--btn);color:var(--btnt);border-radius:10px;padding:9px;font-weight:700;font-size:14px}
-.add:active{background:var(--or)}
-.bar{position:fixed;left:12px;right:12px;bottom:12px;z-index:20;background:var(--or);color:#fff;border:0;border-radius:14px;padding:15px 18px;display:flex;justify-content:space-between;font-size:16px;font-weight:800;box-shadow:0 6px 18px rgba(255,122,0,.35)}
+.add:active{background:var(--or);color:var(--on)}
+.bar{position:fixed;left:12px;right:12px;bottom:12px;z-index:20;background:var(--or);color:var(--on);border:0;border-radius:14px;padding:15px 18px;display:flex;justify-content:space-between;font-size:16px;font-weight:800;box-shadow:0 6px 18px rgba(254,215,0,.35)}
 .bar.hn{bottom:76px}
 .bar:disabled{opacity:.6}
 .nav{position:fixed;left:0;right:0;bottom:0;z-index:15;background:var(--bg);border-top:1px solid var(--ln);display:flex;padding-bottom:env(safe-area-inset-bottom)}
 .nav button{flex:1;border:0;background:none;color:var(--gr);padding:8px 2px 9px;font-size:11px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:2px}
-.nav button i{font-style:normal;font-size:20px}
-.nav button.on{color:var(--or)}
+.nav button i{font-style:normal}
+.nav button.on{color:var(--tx)}
+.nav button i{display:flex;align-items:center;justify-content:center;width:46px;height:28px;border-radius:14px}
+.nav button.on i{background:var(--or);color:var(--on)}
 .page{padding:16px}
 .page h2{margin:0 0 14px;font-size:20px}
-.back{border:0;background:none;color:var(--or);font-weight:700;font-size:15px;padding:0 0 12px}
+.back{border:0;background:none;color:var(--tx);font-weight:700;font-size:15px;padding:0 0 12px}
 .row{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--ln)}
 .row .em{font-size:30px;width:52px;height:52px;background:var(--or2);border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex:none}
 .row .em img{width:100%;height:100%;object-fit:cover}
@@ -74,7 +82,7 @@ header h1 .s{color:var(--tx)}
 label{display:block;font-size:13px;font-weight:600;margin:12px 0 6px;color:var(--gr)}
 input,select{width:100%;padding:13px;border:1px solid var(--ln);border-radius:12px;font-size:16px;background:var(--card);color:var(--tx);font-family:inherit}
 input:focus,select:focus{outline:2px solid var(--or);border-color:var(--or)}
-.btn{width:100%;margin-top:18px;border:0;background:var(--or);color:#fff;border-radius:14px;padding:15px;font-size:16px;font-weight:800}
+.btn{width:100%;margin-top:18px;border:0;background:var(--or);color:var(--on);border-radius:14px;padding:15px;font-size:16px;font-weight:800}
 .btn.sec{background:var(--btn);color:var(--btnt)}
 .btn:disabled{opacity:.6}
 .box{background:var(--or2);border:1px dashed var(--or);border-radius:14px;padding:14px;margin:12px 0}
@@ -95,7 +103,7 @@ input:focus,select:focus{outline:2px solid var(--or);border-color:var(--or)}
 .dots i.on{background:var(--or)}
 .pbody{padding:16px}
 .pbody .ptitle{font-size:20px;font-weight:800;line-height:1.25;margin:0 0 8px}
-.pbody .pprice{font-size:24px;font-weight:900;color:var(--or)}
+.pbody .pprice{font-size:24px;font-weight:900;color:var(--pr)}
 .pbody .pprice .old{font-size:15px}
 .vlabel{font-size:13px;font-weight:700;color:var(--gr);margin:18px 0 8px}
 .vchips{display:flex;flex-wrap:wrap;gap:8px}
@@ -112,15 +120,15 @@ input:focus,select:focus{outline:2px solid var(--or);border-color:var(--or)}
 .st.checking{background:#fff3cd;color:#8a6d00}
 .st.paid{background:#d9f2e3;color:#16803c}
 .st.rejected{background:#fdecea;color:#d93025}
-.st.ship{background:var(--or2);color:var(--or)}
+.st.ship{background:var(--or2);color:var(--pr);border:1px solid var(--or)}
 .ord .row:last-of-type{border-bottom:0}
 .ord .tot{display:flex;justify-content:space-between;font-weight:800;padding-top:10px;border-top:1px solid var(--ln)}
 /* profil / yordam */
 .me{display:flex;gap:12px;align-items:center;background:var(--or2);border-radius:14px;padding:12px;margin-bottom:6px}
-.me .av{width:44px;height:44px;border-radius:50%;background:var(--or);color:#fff;font-weight:800;font-size:20px;display:flex;align-items:center;justify-content:center}
+.me .av{width:44px;height:44px;border-radius:50%;background:var(--or);color:var(--on);font-weight:800;font-size:20px;display:flex;align-items:center;justify-content:center}
 .me .tn{font-weight:800}.me .tu{font-size:13px;color:var(--gr)}
 .sp{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:1px solid var(--ln);background:var(--card);color:var(--tx);border-radius:14px;padding:14px;margin-bottom:10px;font-size:16px;font-weight:700}
-.sp .ic{width:42px;height:42px;border-radius:50%;background:#229ED9;color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
+.sp .ic{width:42px;height:42px;border-radius:50%;background:var(--or);color:var(--on);display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
 .sp small{display:block;color:var(--gr);font-weight:500;font-size:13px;margin-top:2px}
 </style>
 </head>
@@ -166,6 +174,23 @@ const REGIONS = {
   uz:["Toshkent shahri","Toshkent viloyati","Andijon","Buxoro","Farg'ona","Jizzax","Namangan","Navoiy","Qashqadaryo","Qoraqalpog'iston","Samarqand","Sirdaryo","Surxondaryo","Xorazm"],
   ru:["г. Ташкент","Ташкентская обл.","Андижан","Бухара","Фергана","Джизак","Наманган","Навои","Кашкадарья","Каракалпакстан","Самарканд","Сырдарья","Сурхандарья","Хорезм"]
 };
+const ICONS = {
+  home:'<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
+  box:'<path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/>',
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>',
+  help:'<path d="M4 14v-2a8 8 0 0116 0v2"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/><path d="M19 20c0 1.5-2 2-5 2"/>',
+  heart:'<path d="M12 21s-8-5.2-8-11a4.5 4.5 0 018-2.8A4.5 4.5 0 0120 10c0 5.8-8 11-8 11z"/>',
+  cart:'<circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.7 12.4a1 1 0 001 .8h8.8a1 1 0 001-.8L20 7H6"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  moon:'<path d="M21 13A9 9 0 1111 3a7 7 0 0010 10z"/>',
+  search:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
+  send:'<path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/>',
+  yt:'<path d="M22 8.5a3 3 0 00-2.1-2.1C18 6 12 6 12 6s-6 0-7.9.4A3 3 0 002 8.5 31 31 0 001.6 12 31 31 0 002 15.5a3 3 0 002.1 2.1C6 18 12 18 12 18s6 0 7.9-.4a3 3 0 002.1-2.1A31 31 0 0022.4 12 31 31 0 0022 8.5z"/><path d="M10 15l5-3-5-3z" fill="currentColor"/>',
+  ig:'<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".8" fill="currentColor"/>',
+  refresh:'<path d="M21 12a9 9 0 11-3-6.7L21 8"/><path d="M21 3v5h-5"/>'
+};
+const ic = (n, sz=22) => `<svg viewBox="0 0 24 24" width="${sz}" height="${sz}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[n]}</svg>`;
+const BOLT = `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M13.5 2L4.5 13.5h6.2L9.5 22l9-11.5h-6.2L13.5 2z"/></svg>`;
 const TABS = ["shop","orders","profile","support"];
 
 const tg = window.Telegram && window.Telegram.WebApp;
@@ -369,29 +394,29 @@ function productView(){
 /* ---------- umumiy qismlar ---------- */
 function header(){
   const n = count();
-  return `<header><h1><span class="l">Lemmon</span> <span class="s">Shop</span></h1>
+  return `<header><h1><span class="logo">${BOLT}</span><span class="s">ELECZONA</span></h1>
   <div class="hr"><div class="lang"><button class="${lang==='uz'?'on':''}" onclick="setLang('uz')">UZ</button>
   <button class="${lang==='ru'?'on':''}" onclick="setLang('ru')">RU</button></div>
-  <button class="ib" onclick="showFavs()" aria-label="fav" style="color:#e53935">♥</button>
-  <button class="ib" onclick="toggleTheme()" aria-label="theme">${theme==='dark' ? '☀️' : '🌙'}</button>
-  <button class="ib" onclick="go('cart')" aria-label="cart">🛒${n ? `<span class="n">${n}</span>` : ""}</button></div></header>`;
+  <button class="ib" onclick="showFavs()" aria-label="fav" style="color:#e53935">${ic("heart",18)}</button>
+  <button class="ib" onclick="toggleTheme()" aria-label="theme">${ic(theme==='dark' ? 'sun' : 'moon',18)}</button>
+  <button class="ib" onclick="go('cart')" aria-label="cart">${ic("cart",18)}${n ? `<span class="n">${n}</span>` : ""}</button></div></header>`;
 }
 
 function nav(){
-  const items = [["shop","🏠",t("home")],["orders","📦",t("orders")],["profile","👤",t("profile")],["support","💬",t("support")]];
-  return `<nav class="nav">${items.map(([v,ic,lb]) => `<button class="${view===v?'on':''}" onclick="go('${v}')"><i>${ic}</i>${lb}</button>`).join("")}</nav>`;
+  const items = [["shop","home",t("home")],["orders","box",t("orders")],["profile","user",t("profile")],["support","help",t("support")]];
+  return `<nav class="nav">${items.map(([v,icn,lb]) => `<button class="${view===v?'on':''}" onclick="go('${v}')"><i>${ic(icn,22)}</i>${lb}</button>`).join("")}</nav>`;
 }
 
 function pic(p){ return p.img ? `<img src="${p.img}" loading="lazy" alt="">` : "📦"; }
 
 function cartBar(){
-  return count() ? `<button class="bar hn" onclick="go('cart')"><span>🛒 ${t("cart")} · ${count()}</span><span>${fmt(total())}</span></button>` : "";
+  return count() ? `<button class="bar hn" onclick="go('cart')"><span>${t("cart")} · ${count()}</span><span>${fmt(total())}</span></button>` : "";
 }
 
 function shop(){
   const cats = ["all","kiyim","elektr","uy","sale"];
   const chips = cats.map(c=>`<button class="chip ${cat===c?'on':''}" onclick="setCat('${c}')">${t(c)}</button>`).join("");
-  return header() + `<div class="sub"><div class="search"><span class="mg">🔍</span><input id="q" type="search" placeholder="${esc(t("search"))}" value="${esc(q)}" oninput="setQ(this.value)"></div>
+  return header() + `<div class="sub"><div class="search"><span class="mg">${ic("search",17)}</span><input id="q" type="search" placeholder="${esc(t("search"))}" value="${esc(q)}" oninput="setQ(this.value)"></div>
   <div class="cats">${chips}</div></div><div id="grid">${gridHtml()}</div>` + cartBar() + nav();
 }
 
@@ -491,7 +516,7 @@ function ordersView(){
     return `<div class="ord"><div class="top"><div>#${o.id}<div class="dt">${d}</div></div><span class="st ${s.cls}">${esc(s.text)}</span></div>
       ${rows}<div class="tot"><span>${t("total")}</span><span>${fmt(o.total)}</span></div></div>`;
   }).join("");
-  return header()+`<div class="page"><h2>📦 ${t("orders")} <button class="ib" style="float:right;font-size:13px" onclick="loadOrders()">🔄 ${t("refresh")}</button></h2>${body}</div>` + nav();
+  return header()+`<div class="page"><h2>${t("orders")} <button class="ib" style="float:right;font-size:13px;display:flex;align-items:center;gap:6px" onclick="loadOrders()">${ic("refresh",15)} ${t("refresh")}</button></h2>${body}</div>` + nav();
 }
 
 /* ---------- Profil ---------- */
@@ -502,7 +527,7 @@ function saveProfile(){
 }
 function profileView(){
   const nm = me.tg_name || form.name || "?";
-  return header()+`<div class="page"><h2>👤 ${t("profileT")}</h2>
+  return header()+`<div class="page"><h2>${t("profileT")}</h2>
   <div class="me"><div class="av">${esc(nm.trim().charAt(0).toUpperCase())}</div><div><div class="tn">${esc(nm)}</div>${me.tg_user ? `<div class="tu">@${esc(me.tg_user)}</div>` : ""}</div></div>
   <div class="var" style="margin:8px 0 0">${t("profileHint")}</div>
   <label>${t("name")}</label><input value="${esc(form.name)}" oninput="setF('name',this.value)">
@@ -519,10 +544,14 @@ function openTg(u){
   if(tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank");
 }
 function supportView(){
-  const list = (cfg.support || []).map(s => `<button class="sp" onclick="openTg('${esc(s.user)}')"><span class="ic">✈️</span><span>${esc(s.name)}<small>@${esc(s.user)}</small></span></button>`).join("");
-  return header()+`<div class="page"><h2>💬 ${t("supportT")}</h2><p class="var" style="font-size:14px;margin:0 0 14px">${t("supportX")}</p>
-  ${list || `<div class="empty">${t("noSupport")}</div>`}</div>` + nav();
+  const NAMES = {tg:"Telegram", yt:"YouTube", ig:"Instagram"}, SI = {tg:"send", yt:"yt", ig:"ig"};
+  const socs = (cfg.social || []).filter(x => NAMES[x.k]);
+  const soc = socs.length ? `<div class="soc">${socs.map(x => `<button onclick="openUrl('${esc(x.url)}')"><span>${ic(SI[x.k],28)}</span>${NAMES[x.k]}</button>`).join("")}</div>` : "";
+  const list = (cfg.support || []).map(s => `<button class="sp" onclick="openTg('${esc(s.user)}')"><span class="ic">${ic("send",20)}</span><span>${esc(s.name)}<small>@${esc(s.user)}</small></span></button>`).join("");
+  return header()+`<div class="page"><h2>${t("supportT")}</h2><p class="var" style="font-size:14px;margin:0 0 14px">${t("supportX")}</p>
+  ${list || `<div class="empty">${t("noSupport")}</div>`}${soc}</div>` + nav();
 }
+function openUrl(u){ if(tg && tg.openLink) tg.openLink(u); else window.open(u, "_blank"); }
 
 function favsView(){
   const list = favs.map(id => P(id)).filter(Boolean);
@@ -535,7 +564,7 @@ function favsView(){
     <button class="fx" onclick="toggleFav(${p.id})" aria-label="remove">♥</button></div></div></div>`;
   }).join("");
   return header()+`<div class="page"><button class="back" onclick="go('shop')">${t("back")}</button>
-  <h2>❤️ ${t("favT")}</h2>${rows || `<div class="empty">${t("noFavs")}</div>`}</div>` + cartBar();
+  <h2>${t("favT")}</h2>${rows || `<div class="empty">${t("noFavs")}</div>`}</div>` + cartBar();
 }
 
 function render(){

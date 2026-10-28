@@ -57,6 +57,12 @@ def parse_support(raw):
 
 
 SUPPORT = parse_support(os.environ.get("SUPPORT", ""))
+# Ijtimoiy tarmoq havolalari (Render Environment: TG_URL, YT_URL, IG_URL)
+SOCIAL = [{"k": k, "url": u} for k, u in (
+    ("tg", os.environ.get("TG_URL", "")),
+    ("yt", os.environ.get("YT_URL", "")),
+    ("ig", os.environ.get("IG_URL", "https://www.instagram.com/eleczona")),
+) if u.strip().startswith("http")]
 
 # Yetkazib berish bosqichlari (admin tugmalari). Yangi bosqich qo'shish: shu ro'yxatga bitta qator qo'shing.
 STAGES = [
@@ -529,7 +535,7 @@ async def webhook(secret: str, request: Request):
 # ---------- ommaviy ----------
 @app.get("/api/config")
 def api_config():
-    return {"card": CARD, "owner": CARD_OWNER, "support": SUPPORT, "stages": STAGES}
+    return {"card": CARD, "owner": CARD_OWNER, "support": SUPPORT, "social": SOCIAL, "stages": STAGES}
 
 
 @app.get("/api/products")

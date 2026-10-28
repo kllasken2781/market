@@ -3,17 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Admin panel</title>
+<title>ELECZONA admin</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-:root{--or:#FF7A00;--or2:#FFF1E3;--bk:#141414;--gr:#6b6b6b;--ln:#ececec;--gn:#1a9b4b;--rd:#d93025}
+:root{--or:#FED700;--or2:#FFF8CC;--bk:#141414;--gr:#6b6b6b;--ln:#ececec;--gn:#1a9b4b;--rd:#d93025}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#fff;color:var(--bk);padding-bottom:90px}
 header{position:sticky;top:0;z-index:10;background:var(--bk);color:#fff;padding:12px 16px;font-size:18px;font-weight:700}
 header span{color:var(--or)}
 .tabs{display:flex;border-bottom:1px solid var(--ln);position:sticky;top:46px;background:#fff;z-index:9}
 .tabs button{flex:1;border:0;background:none;padding:14px;font-size:15px;font-weight:700;color:var(--gr);border-bottom:3px solid transparent}
-.tabs button.on{color:var(--or);border-bottom-color:var(--or)}
+.tabs button.on{color:var(--bk);border-bottom-color:var(--or)}
 .wrap{padding:12px 16px}
 .item{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--ln)}
 .thumb{width:56px;height:56px;border-radius:12px;background:var(--or2);display:flex;align-items:center;justify-content:center;font-size:26px;overflow:hidden;flex:none}
@@ -24,7 +24,7 @@ header span{color:var(--or)}
 .profit{color:var(--gn);font-weight:700}
 .loss{color:var(--rd);font-weight:700}
 .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;background:#eee;color:#555;margin-left:6px}
-.fab{position:fixed;left:12px;right:12px;bottom:12px;background:var(--or);color:#fff;border:0;border-radius:14px;padding:15px;font-size:16px;font-weight:800;box-shadow:0 6px 18px rgba(255,122,0,.35)}
+.fab{position:fixed;left:12px;right:12px;bottom:12px;background:var(--or);color:#111;border:0;border-radius:14px;padding:15px;font-size:16px;font-weight:800;box-shadow:0 6px 18px rgba(254,215,0,.35)}
 label{display:block;font-size:13px;font-weight:600;margin:14px 0 6px;color:var(--gr)}
 input,select,textarea{width:100%;padding:13px;border:1px solid var(--ln);border-radius:12px;font-size:16px;background:#fff;color:var(--bk);font-family:inherit}
 textarea{min-height:110px;resize:vertical;line-height:1.4}
@@ -32,18 +32,18 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--or);border-color
 .hint{font-size:12px;color:var(--gr);margin-top:4px}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .calc{background:var(--or2);border-radius:12px;padding:12px;margin-top:14px;font-weight:700;display:flex;justify-content:space-between}
-.btn{width:100%;margin-top:16px;border:0;background:var(--or);color:#fff;border-radius:14px;padding:15px;font-size:16px;font-weight:800}
+.btn{width:100%;margin-top:16px;border:0;background:var(--or);color:#111;border-radius:14px;padding:15px;font-size:16px;font-weight:800}
 .btn.sec{background:#f3f3f3;color:var(--bk)}
 .btn.del{background:#fdecea;color:var(--rd)}
 .btn:disabled{opacity:.6}
-.back{border:0;background:none;color:var(--or);font-weight:700;font-size:15px;padding:12px 0 0}
+.back{border:0;background:none;color:var(--bk);font-weight:700;font-size:15px;padding:12px 0 0}
 .imgs{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
 .im{position:relative;width:84px;height:84px;border-radius:12px;overflow:hidden;background:var(--or2)}
 .im img{width:100%;height:100%;object-fit:cover;display:block}
 .im .x{position:absolute;top:3px;right:3px;width:24px;height:24px;border-radius:50%;border:0;background:rgba(0,0,0,.7);color:#fff;font-size:14px;line-height:1;padding:0}
-.im .mk{position:absolute;left:0;bottom:0;right:0;background:var(--or);color:#fff;font-size:10px;font-weight:700;text-align:center;padding:2px 0}
+.im .mk{position:absolute;left:0;bottom:0;right:0;background:var(--or);color:#111;font-size:10px;font-weight:700;text-align:center;padding:2px 0}
 .im .fst{position:absolute;bottom:3px;left:3px;border:0;border-radius:6px;background:rgba(0,0,0,.7);color:#fff;font-size:10px;padding:3px 6px}
-.addim{width:84px;height:84px;border-radius:12px;border:2px dashed var(--or);color:var(--or);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700;cursor:pointer}
+.addim{width:84px;height:84px;border-radius:12px;border:2px dashed var(--or);color:var(--bk);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700;cursor:pointer}
 .sw{display:flex;align-items:center;gap:10px;margin-top:16px;font-weight:600}
 .sw input{width:22px;height:22px}
 .msg{text-align:center;color:var(--gr);padding:60px 20px}
@@ -53,17 +53,17 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--or);border-color
 .st.wait_receipt{background:#eee;color:#555}.st.checking{background:#fff3cd;color:#8a6d00}
 .st.paid{background:#d9f2e3;color:var(--gn)}.st.rejected{background:#fdecea;color:var(--rd)}
 .ord p{margin:6px 0 0;font-size:14px;line-height:1.4}
-.st.ship{background:var(--or2);color:var(--or)}
+.st.ship{background:var(--or2);color:#111}
 .stg{display:flex;flex-direction:column;gap:6px;margin-top:10px}
 .stg button{border:1px solid var(--ln);background:#fff;border-radius:10px;padding:10px;font-size:14px;font-weight:600;text-align:left;color:var(--bk)}
-.stg button.on{background:var(--or);border-color:var(--or);color:#fff}
+.stg button.on{background:var(--or);border-color:var(--or);color:#111}
 .stg button.pay{background:#eef9f1;border-color:#bfe5cc}
 .stg button.no{background:#fdecea;border-color:#f3c3be}
 .stl{font-size:12px;font-weight:700;color:var(--gr);margin-top:12px}
 </style>
 </head>
 <body>
-<header>⚙️ Admin <span>panel</span></header>
+<header>ELECZONA <span>admin</span></header>
 <div id="app"><div class="msg">Yuklanmoqda...</div></div>
 
 <script>
