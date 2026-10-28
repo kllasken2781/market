@@ -59,6 +59,17 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--or);border-color
 .stg button.on{background:var(--or);border-color:var(--or);color:#111}
 .stg button.pay{background:#eef9f1;border-color:#bfe5cc}
 .stg button.no{background:#fdecea;border-color:#f3c3be}
+.ckl{display:flex;align-items:center;gap:10px;font-weight:800;font-size:16px}
+.ck{width:26px;height:26px;accent-color:#111;flex:none;margin:0;padding:0}
+.selbar{display:flex;align-items:center;justify-content:space-between;padding:6px 0 10px;font-weight:700}
+.fab.del{background:#d93025;color:#fff;box-shadow:0 6px 18px rgba(217,48,37,.35)}
+.statc{cursor:pointer}
+.statc .chev{color:var(--gr);font-size:13px;margin-left:8px}
+.sold{margin-top:10px;border-top:1px solid var(--ln);padding-top:6px}
+.sold .si{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--ln);font-size:14px}
+.sold .si:last-child{border-bottom:0}
+.sold .si b{font-weight:700}
+.sold .si small{display:block;color:var(--gr);font-size:12px;margin-top:2px}
 .stl{font-size:12px;font-weight:700;color:var(--gr);margin-top:12px}
 #crop{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:14px}
 #crop .cb{background:#fff;border-radius:18px;padding:14px;width:100%;max-width:380px}
@@ -71,7 +82,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--or);border-color
 </style>
 </head>
 <body>
-<header>ELECZONA <span>admin</span></header>
+<header>ELECZONA <span>admin</span> <small style="font-size:11px;font-weight:500;color:#999;margin-left:6px">v3</small></header>
 <div id="app"><div class="msg">Yuklanmoqda...</div></div>
 
 <script>
@@ -114,13 +125,30 @@ async function loadAll(){
 }
 
 function alertMsg(s){ (tg && tg.showAlert) ? tg.showAlert(s) : alert(s); }
-let stats = null;
+let stats = null, statOpen = -1, selOrd = new Set();
 async function openStats(){
   tab = "stats"; render();
   try{ stats = await api("/api/admin/stats"); }catch(e){ alertMsg("Xatolik: " + e.message); }
   render();
 }
 function setTab(t){ tab = t; render(); }
+function togStat(i){ statOpen = statOpen === i ? -1 : i; render(); }
+function togOrd(id, on){ if(on) selOrd.add(id); else selOrd.delete(id); updDel(); }
+function togAll(on){ selOrd = on ? new Set(ords.map(o=>o.id)) : new Set(); render(); }
+function updDel(){
+  const b = document.getElementById("delb"); if(!b) return;
+  b.style.display = selOrd.size ? "block" : "none";
+  b.textContent = "🗑 O'chirish (" + selOrd.size + ")";
+}
+function delOrders(){
+  const ids = Array.from(selOrd); if(!ids.length) return;
+  ask(ids.length + " ta buyurtma ro'yxatdan o'chirilsinmi?\n\nHisobotdagi savdo va foyda saqlanib qoladi.", async ()=>{
+    try{
+      await api("/api/admin/orders/hide", "POST", {ids});
+      selOrd = new Set(); ords = await api("/api/admin/orders"); stats = null; render();
+    }catch(e){ alertMsg("Xatolik: " + e.message); }
+  });
+}
 
 function stageName(o){
   if(o.ship){ const s = stages.find(x=>x.k===o.ship); return esc(s ? s.uz : o.ship); }
@@ -131,7 +159,7 @@ function ask(msg, fn){
   else if(confirm(msg)) fn();
 }
 async function afterOrderChange(r){
-  ords = await api("/api/admin/orders"); render();
+  ords = await api("/api/admin/orders"); stats = null; render();
   if(r && r.sent === false) alertMsg("Holat saqlandi, lekin mijozga xabar bormadi (mijoz botni /start qilmagan bo'lishi mumkin).");
 }
 function setShip(id, k){
@@ -154,12 +182,13 @@ function listView(){
   <button class="${tab==='stats'?'on':''}" onclick="openStats()">Hisobot</button></div>`;
   if(tab === "stats"){
     if(!stats) return tabs + '<div class="wrap"><div class="msg">Yuklanmoqda...</div></div>';
-    const cards = stats.periods.map(p=>`<div class="ord"><div class="top"><span>${p.label}</span><span>${p.orders} ta buyurtma</span></div>
-      <p>Savdo: <b>${money(p.revenue)}</b></p><p>Sof foyda: <span class="${p.profit>=0?'profit':'loss'}">${money(p.profit)}</span></p></div>`).join("");
+    const cards = stats.periods.map((p,i)=>`<div class="ord statc" onclick="togStat(${i})"><div class="top"><span>${p.label}</span><span>${p.orders} ta buyurtma <span class="chev">${statOpen===i?'▲':'▼'}</span></span></div>
+      <p>Savdo: <b>${money(p.revenue)}</b></p><p>Sof foyda: <span class="${p.profit>=0?'profit':'loss'}">${money(p.profit)}</span></p>
+      ${statOpen===i ? `<div class="sold">${p.items.length ? p.items.map(it=>`<div class="si"><div><b>${esc(it.name)}</b><small>${it.qty} dona · savdo ${money(it.revenue)}</small></div><span class="${it.profit>=0?'profit':'loss'}">${money(it.profit)}</span></div>`).join("") : '<p class="hint">Bu davrda sotuv yo\'q</p>'}</div>` : `<p class="hint">Nima sotilganini ko'rish uchun bosing</p>`}</div>`).join("");
     return tabs + `<div class="wrap">${cards}<p class="hint">Faqat to'lovi tasdiqlangan buyurtmalar hisoblanadi. Foyda = sotuv narxi − Pinduoduo narxi. Hali tasdiqlanmagan: ${stats.pending} ta.</p></div>`;
   }
   if(tab === "orders"){
-    const rows = ords.map(o=>`<div class="ord"><div class="top"><span>#${o.id}</span><span class="st ${o.ship?'ship':o.status}">${stageName(o)}</span></div>
+    const rows = ords.map(o=>`<div class="ord"><div class="top"><label class="ckl"><input type="checkbox" class="ck" ${selOrd.has(o.id)?"checked":""} onchange="togOrd(${o.id},this.checked)"> #${o.id}</label><span class="st ${o.ship?'ship':o.status}">${stageName(o)}</span></div>
       <p>${o.items.map(i=>esc(i.name)+" × "+i.qty).join("<br>")}</p>
       <p><b>${money(o.total)}</b></p>
       <p>👤 ${esc(o.name)} · ${esc(o.phone)}<br>📍 ${esc(o.region)}, ${esc(o.city)}<br>📮 ${esc(o.post)}</p>
@@ -169,7 +198,9 @@ function listView(){
       <button class="no" onclick="setPay(${o.id},false)">❌ To'lovni rad etish</button></div>
       <div class="stl">YETKAZISH HOLATI (bossangiz mijozga xabar boradi):</div>
       <div class="stg">${stages.map(s=>`<button class="${o.ship===s.k?'on':''}" onclick="setShip(${o.id},'${s.k}')">${esc(s.uz)}</button>`).join("")}</div></div>`).join("");
-    return tabs + `<div class="wrap">${rows || '<div class="msg">Hali buyurtma yo\'q</div>'}</div>`;
+    const bar = ords.length ? `<div class="selbar"><label class="ckl" style="font-size:14px"><input type="checkbox" class="ck" ${selOrd.size===ords.length?"checked":""} onchange="togAll(this.checked)"> Hammasini belgilash</label><span style="color:#888;font-size:13px">${ords.length} ta</span></div>` : "";
+    return tabs + `<div class="wrap">${bar}${rows || '<div class="msg">Hali buyurtma yo\'q</div>'}</div>
+      <button class="fab del" id="delb" style="display:${selOrd.size?"block":"none"}" onclick="delOrders()">🗑 O'chirish (${selOrd.size})</button>`;
   }
   const rows = list.map(p=>`<div class="item" onclick="edit(${p.id})">
     <div class="thumb">${p.img?`<img src="${p.img}" alt="">`:"📦"}</div>
