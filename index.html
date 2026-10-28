@@ -111,6 +111,16 @@ input:focus,select:focus{outline:2px solid var(--or);border-color:var(--or)}
 .vchip.on{background:var(--btn);border-color:var(--btn);color:var(--btnt)}
 .pdesc{margin-top:18px;font-size:15px;line-height:1.5;white-space:pre-line;color:var(--tx)}
 .pdesc h4{margin:0 0 6px;font-size:13px;color:var(--gr);text-transform:uppercase;letter-spacing:.5px}
+#lb{position:fixed;inset:0;z-index:100;background:#000}
+.lbs{display:flex;height:100%;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+.lbs::-webkit-scrollbar{display:none}
+.lbp{flex:none;width:100%;height:100%;scroll-snap-align:center;overflow:auto;display:flex}
+.lbp img{margin:auto;max-width:100%;max-height:100%;object-fit:contain}
+.lbp img.z{max-width:none;max-height:none;width:250%}
+.lbx{position:fixed;top:12px;right:12px;z-index:101;width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.2);color:#fff;font-size:20px}
+.lbn{position:fixed;bottom:22px;left:0;right:0;text-align:center;color:#fff;font-weight:700;z-index:101}
+.gal img{cursor:zoom-in}
+.row.tap{cursor:pointer}
 /* buyurtmalarim */
 .ord{border:1px solid var(--ln);border-radius:14px;padding:12px;margin:0 0 14px;background:var(--card)}
 .ord .top{display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:800}
@@ -151,7 +161,7 @@ const T = {
       noOrders:"Hali buyurtmalar yo'q",refresh:"Yangilash",profileT:"Profil",save:"Saqlash",saved:"Saqlandi ✓",
       profileHint:"Ma'lumotlaringiz saqlanadi va buyurtma berishda avtomatik to'ldiriladi.",
       supportT:"Qo'llab-quvvatlash",supportX:"Savolingiz bormi? Quyidagilarga Telegramda yozing:",noSupport:"Aloqa ma'lumotlari tez orada qo'shiladi.",
-      fav:"❤️",favT:"Sevimlilar",noFavs:"Hali sevimli mahsulot yo'q. Mahsulotdagi ♥ tugmasini bosing.",soldOut:"Tugadi",wait_receipt:"Chek kutilmoqda",checking:"To'lov tekshirilmoqda",paid:"To'lov tasdiqlandi",rejected:"To'lov rad etildi",
+      cancel:"Bekor qilish",clearCart:"Savatni tozalash",clearQ:"Savatdagi hamma mahsulot o'chirilsinmi?",gone:"Bu mahsulot hozir sotuvda yo'q",fav:"❤️",favT:"Sevimlilar",noFavs:"Hali sevimli mahsulot yo'q. Mahsulotdagi ♥ tugmasini bosing.",soldOut:"Tugadi",wait_receipt:"Chek kutilmoqda",checking:"To'lov tekshirilmoqda",paid:"To'lov tasdiqlandi",rejected:"To'lov rad etildi",
       viewOrders:"Buyurtmalarimga o'tish",tgAcc:"Telegram akkauntingiz"},
   ru:{all:"Все",kiyim:"Одежда",elektr:"Электроника",uy:"Для дома",sale:"Скидки",add:"В корзину",choose:"Выбрать",cart:"Корзина",
       empty:"Корзина пуста",total:"Итого",order:"Оформить заказ",back:"← Назад",sum:"сум",
@@ -167,7 +177,7 @@ const T = {
       noOrders:"Заказов пока нет",refresh:"Обновить",profileT:"Профиль",save:"Сохранить",saved:"Сохранено ✓",
       profileHint:"Данные сохраняются и подставляются при оформлении заказа.",
       supportT:"Поддержка",supportX:"Есть вопрос? Напишите нам в Telegram:",noSupport:"Контакты скоро появятся.",
-      fav:"❤️",favT:"Избранное",noFavs:"Избранных товаров пока нет. Нажмите ♥ на товаре.",soldOut:"Нет в наличии",wait_receipt:"Ожидается чек",checking:"Оплата проверяется",paid:"Оплата подтверждена",rejected:"Оплата отклонена",
+      cancel:"Отмена",clearCart:"Очистить корзину",clearQ:"Удалить все товары из корзины?",gone:"Этот товар сейчас недоступен",fav:"❤️",favT:"Избранное",noFavs:"Избранных товаров пока нет. Нажмите ♥ на товаре.",soldOut:"Нет в наличии",wait_receipt:"Ожидается чек",checking:"Оплата проверяется",paid:"Оплата подтверждена",rejected:"Оплата отклонена",
       viewOrders:"Перейти к моим заказам",tgAcc:"Ваш аккаунт Telegram"}
 };
 const REGIONS = {
@@ -296,11 +306,68 @@ function setLang(l){ lang = l; lsSet("lang", l); savePref({lang:l}); render(); }
 function toggleTheme(){ theme = theme === "dark" ? "light" : "dark"; lsSet("theme", theme); applyTheme(); savePref({theme}); render(); }
 function showFavs(){ go("favs"); }
 function setCat(c){ cat = c; render(); }
+/* ---------- orqaga qaytish (tugma, telefon chetidan surish) ---------- */
+let stk = [], hist = 0, ignorePop = 0, lb = null;
+function setView(v){
+  if(v === view) return;
+  if(v === "shop" || TABS.includes(v)) stk = []; else stk.push({view, curId});
+  view = v;
+  if(v !== "shop" && !hist){ try{ history.pushState({e:1}, ""); hist = 1; }catch(e){} }
+  if(v === "shop" && hist){ hist = 0; ignorePop++; try{ history.back(); }catch(e){ ignorePop--; } }
+}
+function goBack(){
+  const p = stk.pop();
+  if(p){ view = p.view; curId = p.curId; } else view = "shop";
+  window.scrollTo(0,0);
+  if(view === "orders") loadOrders();
+  render();
+}
+function back(){
+  if(lb){ closeLb(); return; }
+  if(view === "shop") return;
+  if(hist) history.back(); else goBack();
+}
+window.addEventListener("popstate", () => {
+  if(ignorePop){ ignorePop--; return; }
+  hist = 0;
+  if(lb) closeLb(); else if(view !== "shop") goBack();
+  if(view !== "shop"){ try{ history.pushState({e:1}, ""); hist = 1; }catch(e){} }
+});
+function updateBB(){
+  try{ if(tg && tg.BackButton){ (view !== "shop" || lb) ? tg.BackButton.show() : tg.BackButton.hide(); } }catch(e){}
+}
+try{ if(tg && tg.BackButton) tg.BackButton.onClick(back); }catch(e){}
+
+function openLb(i){
+  const p = P(curId), d = detail[curId];
+  const imgs = d ? d.images : (p && p.img ? [p.img] : []);
+  if(!imgs.length) return;
+  closeLb();
+  lb = document.createElement("div"); lb.id = "lb";
+  lb.innerHTML = `<button class="lbx" onclick="back()">✕</button>
+    <div class="lbs" onscroll="lbScroll(this)">${imgs.map(u => `<div class="lbp"><img src="${u}" alt="" onclick="this.classList.toggle('z')"></div>`).join("")}</div>
+    ${imgs.length > 1 ? `<div class="lbn" id="lbn">${i+1} / ${imgs.length}</div>` : ""}`;
+  document.body.appendChild(lb);
+  lb.querySelector(".lbs").scrollLeft = i * window.innerWidth;
+  updateBB();
+}
+function lbScroll(el){
+  const n = document.getElementById("lbn"); if(!n) return;
+  n.textContent = (Math.round(el.scrollLeft / el.clientWidth) + 1) + " / " + el.children.length;
+}
+function closeLb(){ if(lb){ lb.remove(); lb = null; } updateBB(); }
+
 function go(v){
-  view = v; window.scrollTo(0,0);
+  setView(v); window.scrollTo(0,0);
   if(v === "orders") loadOrders();
   render();
 }
+function clearCart(){
+  const run = () => { cart = []; saveCart(); setView("shop"); render(); };
+  if(tg && tg.showConfirm) tg.showConfirm(t("clearQ"), ok => { if(ok) run(); }); else if(confirm(t("clearQ"))) run();
+}
+function cancelOrder(){ go("shop"); }
+function openOrderItem(id){ if(P(id)) openP(id); else alertMsg(t("gone")); }
 function addLine(id,size="",color=""){
   const l = cart.find(x => sameLine(x,id,size,color));
   if(l) l.qty++; else cart.push({id,size,color,qty:1});
@@ -309,7 +376,7 @@ function addLine(id,size="",color=""){
 function quickAdd(id){ addLine(id); render(); }
 function chg(i,d){
   cart[i].qty += d; if(cart[i].qty <= 0) cart.splice(i,1);
-  if(!count()) view = "shop";
+  if(!count()) setView("shop");
   saveCart(); render();
 }
 function setF(k,v){ form[k] = v; }
@@ -340,7 +407,7 @@ function gridHtml(){
 
 /* ---------- mahsulot sahifasi ---------- */
 async function openP(id){
-  curId = id; sel = {size:"", color:""}; view = "product";
+  curId = id; sel = {size:"", color:""}; setView("product");
   window.scrollTo(0,0); render();
   if(!detail[id]){
     try{ const r = await fetch("/api/products/" + id); if(r.ok) detail[id] = await r.json(); }catch(e){}
@@ -362,7 +429,7 @@ function addFromPage(){
   if(d.sizes.length && !sel.size){ alertMsg(t("pickSize")); return; }
   if(d.colors.length && !sel.color){ alertMsg(t("pickColor")); return; }
   addLine(curId, d.sizes.length ? sel.size : "", d.colors.length ? sel.color : "");
-  view = "shop"; window.scrollTo(0,0); render();
+  setView("shop"); window.scrollTo(0,0); render();
 }
 
 function productView(){
@@ -372,10 +439,10 @@ function productView(){
   const imgs = d ? d.images : (p.img ? [p.img] : []);
   const fb = `<button class="pfav ${favs.includes(p.id)?'on':''}" id="pfav" onclick="toggleFav(${p.id})">♥</button>`;
   const gal = imgs.length
-    ? `<div class="gwrap">${fb}<button class="pback" onclick="go('shop')">←</button>
-       <div class="gal" onscroll="galScroll(this)">${imgs.map(u => `<img src="${u}" alt="">`).join("")}</div>
+    ? `<div class="gwrap">${fb}<button class="pback" onclick="back()">←</button>
+       <div class="gal" onscroll="galScroll(this)">${imgs.map((u,i) => `<img src="${u}" alt="" onclick="openLb(${i})">`).join("")}</div>
        ${imgs.length > 1 ? `<div class="dots" id="dots">${imgs.map((_,i) => `<i class="${i===0?'on':''}"></i>`).join("")}</div>` : ""}</div>`
-    : `<div class="gwrap">${fb}<button class="pback" onclick="go('shop')">←</button><div class="nogal">📦</div></div>`;
+    : `<div class="gwrap">${fb}<button class="pback" onclick="back()">←</button><div class="nogal">📦</div></div>`;
   const sale = p.old_price && p.old_price > p.price;
   let vars = "";
   if(d){
@@ -428,10 +495,10 @@ function cartView(){
     <div class="mid"><div class="name">${esc(pname(p))}</div>${v?`<div class="var">${esc(v)}</div>`:""}<div class="price">${fmt(p.price*l.qty)}</div></div>
     <div class="qty"><button onclick="chg(${i},-1)">−</button><b>${l.qty}</b><button onclick="chg(${i},1)">+</button></div></div>`;
   }).join("");
-  return header()+`<div class="page"><button class="back" onclick="go('shop')">${t("back")}</button>
+  return header()+`<div class="page"><button class="back" onclick="back()">${t("back")}</button>
   <h2>${t("cart")}</h2>${rows || `<div class="empty">${t("empty")}</div>`}
   <div class="total"><span>${t("total")}</span><span>${fmt(total())}</span></div>
-  ${rows?`<button class="btn" onclick="go('checkout')">${t("order")}</button>`:""}</div>`;
+  ${rows?`<button class="btn" onclick="go('checkout')">${t("order")}</button><button class="btn sec" onclick="clearCart()">${t("clearCart")}</button>`:""}</div>`;
 }
 
 function regionOpts(){
@@ -439,14 +506,15 @@ function regionOpts(){
 }
 
 function checkout(){
-  return header()+`<div class="page"><button class="back" onclick="go('cart')">${t("back")}</button>
+  return header()+`<div class="page"><button class="back" onclick="back()">${t("back")}</button>
   <h2>${t("delivery")}</h2>
   <label>${t("name")}</label><input value="${esc(form.name)}" oninput="setF('name',this.value)">
   <label>${t("phone")}</label><input type="tel" inputmode="tel" value="${esc(form.phone)}" oninput="setF('phone',this.value)">
   <label>${t("region")}</label><select onchange="setF('region',this.value)">${regionOpts()}</select>
   <label>${t("city")}</label><input value="${esc(form.city)}" oninput="setF('city',this.value)">
   <label>${t("post")}</label><input value="${esc(form.post)}" oninput="setF('post',this.value)">
-  <button class="btn" onclick="toPay()">${t("next")}</button></div>`;
+  <button class="btn" onclick="toPay()">${t("next")}</button>
+  <button class="btn sec" onclick="cancelOrder()">${t("cancel")}</button></div>`;
 }
 
 function alertMsg(s){ (tg && tg.showAlert) ? tg.showAlert(s) : alert(s); }
@@ -459,11 +527,12 @@ function toPay(){
 }
 
 function pay(){
-  return header()+`<div class="page"><button class="back" onclick="go('checkout')">${t("back")}</button>
+  return header()+`<div class="page"><button class="back" onclick="back()">${t("back")}</button>
   <h2>${t("pay")}</h2>
   <div class="total"><span>${t("total")}</span><span>${fmt(total())}</span></div>
   <div class="box"><div>${t("payInfo")}</div><div class="cardno">${esc(cfg.card)}</div><div><b>${esc(cfg.owner)}</b></div></div>
-  <button class="btn" ${busy?"disabled":""} onclick="send()">${busy?"...":t("confirm")}</button></div>`;
+  <button class="btn" ${busy?"disabled":""} onclick="send()">${busy?"...":t("confirm")}</button>
+  <button class="btn sec" ${busy?"disabled":""} onclick="cancelOrder()">${t("cancel")}</button></div>`;
 }
 
 async function send(){
@@ -475,7 +544,7 @@ async function send(){
       region:REGIONS[lang][form.region], region_i:String(form.region), city:form.city.trim(), post:form.post.trim(), lang,
       items:cart.filter(l=>P(l.id)).map(l=>({id:+l.id,qty:l.qty,size:l.size,color:l.color}))
     });
-    cart = []; myOrders = null; view = "done";
+    cart = []; myOrders = null; setView("done"); stk = [];
   }catch(e){ alertMsg(isNaN(e.message) ? e.message : t("error")); }
   busy = false; render();
 }
@@ -510,7 +579,7 @@ function ordersView(){
   else body = myOrders.map(o => {
     const s = stateOf(o);
     const d = new Date(o.created * 1000).toLocaleString("ru-RU", {timeZone:"Asia/Tashkent", day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit"});
-    const rows = o.items.map(i => `<div class="row"><div class="em">${i.img ? `<img src="${i.img}" loading="lazy" alt="">` : "📦"}</div>
+    const rows = o.items.map(i => `<div class="row tap" onclick="openOrderItem(${+i.id || 0})"><div class="em">${i.img ? `<img src="${i.img}" loading="lazy" alt="">` : "📦"}</div>
       <div class="mid"><div class="name">${esc(lang==="ru" ? i.name_ru : i.name)}</div>
       <div class="var">${i.qty} × ${fmt(i.price)}</div></div><div class="price">${fmt(i.qty*i.price)}</div></div>`).join("");
     return `<div class="ord"><div class="top"><div>#${o.id}<div class="dt">${d}</div></div><span class="st ${s.cls}">${esc(s.text)}</span></div>
@@ -563,13 +632,14 @@ function favsView(){
     <div class="fa"><button class="add" ${p.sold_out ? "disabled" : ""} onclick="${p.has_var ? `openP(${p.id})` : `quickAdd(${p.id})`}">${p.sold_out ? t("soldOut") : (p.has_var ? t("choose") : t("add"))}</button>
     <button class="fx" onclick="toggleFav(${p.id})" aria-label="remove">♥</button></div></div></div>`;
   }).join("");
-  return header()+`<div class="page"><button class="back" onclick="go('shop')">${t("back")}</button>
+  return header()+`<div class="page"><button class="back" onclick="back()">${t("back")}</button>
   <h2>${t("favT")}</h2>${rows || `<div class="empty">${t("noFavs")}</div>`}</div>` + cartBar();
 }
 
 function render(){
   const v = {shop,product:productView,cart:cartView,checkout,pay,done,orders:ordersView,profile:profileView,support:supportView,favs:favsView}[view];
   document.getElementById("app").innerHTML = v();
+  updateBB();
 }
 render();
 load();

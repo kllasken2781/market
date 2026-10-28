@@ -60,6 +60,14 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--or);border-color
 .stg button.pay{background:#eef9f1;border-color:#bfe5cc}
 .stg button.no{background:#fdecea;border-color:#f3c3be}
 .stl{font-size:12px;font-weight:700;color:var(--gr);margin-top:12px}
+#crop{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:14px}
+#crop .cb{background:#fff;border-radius:18px;padding:14px;width:100%;max-width:380px}
+#crop h3{margin:0 0 10px;font-size:16px}
+#crop canvas{width:100%;aspect-ratio:1/1;border-radius:12px;background:#fff;border:1px solid var(--ln);touch-action:none;display:block}
+#crop input[type=range]{width:100%;padding:0;margin:14px 0 4px;border:0;accent-color:#FED700}
+#crop .hint{margin:4px 0 0}
+#crop .two{margin-top:10px}
+#crop .btn{margin-top:0}
 </style>
 </head>
 <body>
@@ -248,10 +256,84 @@ async function pickImgs(inp){
   inp.value = "";
   for(const file of files){
     if(f.images.length >= MAXIMG) break;
-    try{ f.images.push({data: await compress(file)}); }
-    catch(e){ alertMsg("Rasmni o'qib bo'lmadi"); }
+    try{
+      const data = await cropFile(file);
+      if(data) f.images.push({data});
+    }catch(e){ alertMsg("Rasmni o'qib bo'lmadi"); }
   }
   const box = document.getElementById("imgs"); if(box) box.innerHTML = imgsHtml();
+}
+
+/* ---------- rasmni kesish va o'lchamini sozlash (kvadrat) ---------- */
+const CS = 320, OUT = 900;           // oyna o'lchami / yakuniy rasm o'lchami
+function cropFile(file){
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("img")); };
+    img.onload = () => {
+      const iw = img.naturalWidth, ih = img.naturalHeight;
+      const fit = Math.min(CS/iw, CS/ih), cover = Math.max(CS/iw, CS/ih), maxS = cover * 3;
+      let s = cover, ox = (CS - iw*s)/2, oy = (CS - ih*s)/2;
+      const wrap = document.createElement("div"); wrap.id = "crop";
+      wrap.innerHTML = `<div class="cb"><h3>Rasmni sozlang</h3>
+        <canvas id="cc" width="${CS*2}" height="${CS*2}"></canvas>
+        <input id="cz" type="range" min="0" max="1000" value="${Math.round((s-fit)/(maxS-fit)*1000)}">
+        <div class="hint">Barmoq bilan suring, pastdagi chiziq bilan kattalashtiring.</div>
+        <div class="two" style="margin-top:12px">
+          <button class="btn sec" id="cfit">Butun rasm</button>
+          <button class="btn sec" id="ccov">To'ldirish</button></div>
+        <div class="two" style="margin-top:10px">
+          <button class="btn sec" id="cno">Bekor qilish</button>
+          <button class="btn" id="cok">Tayyor</button></div></div>`;
+      document.body.appendChild(wrap);
+      const cv = wrap.querySelector("#cc"), z = wrap.querySelector("#cz");
+      const clamp = () => {
+        const w = iw*s, hh = ih*s;
+        ox = w <= CS ? (CS - w)/2 : Math.min(0, Math.max(CS - w, ox));
+        oy = hh <= CS ? (CS - hh)/2 : Math.min(0, Math.max(CS - hh, oy));
+      };
+      const draw = (c, k) => {
+        c.fillStyle = "#fff"; c.fillRect(0, 0, CS*k, CS*k);
+        c.drawImage(img, ox*k, oy*k, iw*s*k, ih*s*k);
+      };
+      const redraw = () => { clamp(); draw(cv.getContext("2d"), 2); };
+      const setScale = ns => {
+        ns = Math.min(maxS, Math.max(fit, ns));
+        const cx = (CS/2 - ox)/s, cy = (CS/2 - oy)/s;      // markaz nuqtasi rasmda
+        s = ns; ox = CS/2 - cx*s; oy = CS/2 - cy*s;
+        z.value = Math.round((s - fit)/(maxS - fit)*1000);
+        redraw();
+      };
+      z.oninput = () => setScale(fit + (maxS - fit) * z.value / 1000);
+      wrap.querySelector("#cfit").onclick = () => setScale(fit);
+      wrap.querySelector("#ccov").onclick = () => { setScale(cover); };
+      // surish va ikki barmoq bilan kattalashtirish
+      const pts = new Map(); let lastD = 0;
+      cv.onpointerdown = e => { cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); lastD = 0; };
+      cv.onpointerup = cv.onpointercancel = e => { pts.delete(e.pointerId); lastD = 0; };
+      cv.onpointermove = e => {
+        if(!pts.has(e.pointerId)) return;
+        const prev = pts.get(e.pointerId); const k = CS / cv.getBoundingClientRect().width;
+        pts.set(e.pointerId, [e.clientX, e.clientY]);
+        if(pts.size === 1){ ox += (e.clientX - prev[0]) * k; oy += (e.clientY - prev[1]) * k; redraw(); }
+        else if(pts.size === 2){
+          const [a, b] = Array.from(pts.values()); const d = Math.hypot(a[0]-b[0], a[1]-b[1]);
+          if(lastD) setScale(s * d / lastD); lastD = d;
+        }
+      };
+      const close = () => { wrap.remove(); URL.revokeObjectURL(url); };
+      wrap.querySelector("#cno").onclick = () => { close(); resolve(null); };
+      wrap.querySelector("#cok").onclick = () => {
+        const out = document.createElement("canvas"); out.width = OUT; out.height = OUT;
+        draw(out.getContext("2d"), OUT / CS);
+        const data = out.toDataURL("image/jpeg", 0.8);
+        close(); resolve(data);
+      };
+      redraw();
+    };
+    img.src = url;
+  });
 }
 function rmImg(i){ f.images.splice(i,1); document.getElementById("imgs").innerHTML = imgsHtml(); }
 function firstImg(i){ const [x] = f.images.splice(i,1); f.images.unshift(x); document.getElementById("imgs").innerHTML = imgsHtml(); }

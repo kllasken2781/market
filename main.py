@@ -61,7 +61,7 @@ SUPPORT = parse_support(os.environ.get("SUPPORT", ""))
 SOCIAL = [{"k": k, "url": u} for k, u in (
     ("tg", os.environ.get("TG_URL", "")),
     ("yt", os.environ.get("YT_URL", "")),
-    ("ig", os.environ.get("IG_URL", "https://www.instagram.com/eleczona")),
+    ("ig", os.environ.get("IG_URL", "")),
 ) if u.strip().startswith("http")]
 
 # Yetkazib berish bosqichlari (admin tugmalari). Yangi bosqich qo'shish: shu ro'yxatga bitta qator qo'shing.
@@ -751,7 +751,7 @@ def api_my_orders(x_init_data: str = Header("")):
         out.append({
             "id": r["id"], "created": r["created"], "total": r["total"],
             "status": r["status"], "ship": r["ship"] or "", "ship_time": r["ship_time"] or 0,
-            "items": [{"name": i.get("name", ""), "name_ru": i.get("name_ru") or i.get("name", ""),
+            "items": [{"id": i.get("id"), "name": i.get("name", ""), "name_ru": i.get("name_ru") or i.get("name", ""),
                        "qty": i.get("qty", 1), "price": i.get("price", 0), "img": imgs.get(i.get("id"))} for i in items],
         })
     return out
