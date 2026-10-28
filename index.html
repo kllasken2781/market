@@ -147,7 +147,7 @@ input:focus,select:focus{outline:2px solid var(--or);border-color:var(--or)}
 
 <script>
 const T = {
-  uz:{all:"Hammasi",kiyim:"Kiyim",elektr:"Elektronika",uy:"Uy-ro'zg'or",sale:"Chegirmalar",add:"Savatga",choose:"Tanlash",cart:"Savat",
+  uz:{all:"Hammasi",sale:"Chegirmalar",add:"Savatga",choose:"Tanlash",cart:"Savat",
       empty:"Savat bo'sh",total:"Jami",order:"Buyurtma berish",back:"← Orqaga",sum:"so'm",
       delivery:"Yetkazib berish",name:"Ismingiz",phone:"Telefon raqam",region:"Viloyat",city:"Shahar / tuman",
       post:"Eng yaqin Uzpost punkti",next:"To'lovga o'tish",pay:"To'lov",
@@ -163,7 +163,7 @@ const T = {
       supportT:"Qo'llab-quvvatlash",supportX:"Savolingiz bormi? Quyidagilarga Telegramda yozing:",noSupport:"Aloqa ma'lumotlari tez orada qo'shiladi.",
       cancel:"Bekor qilish",clearCart:"Savatni tozalash",clearQ:"Savatdagi hamma mahsulot o'chirilsinmi?",gone:"Bu mahsulot hozir sotuvda yo'q",fav:"❤️",favT:"Sevimlilar",noFavs:"Hali sevimli mahsulot yo'q. Mahsulotdagi ♥ tugmasini bosing.",soldOut:"Tugadi",wait_receipt:"Chek kutilmoqda",checking:"To'lov tekshirilmoqda",paid:"To'lov tasdiqlandi",rejected:"To'lov rad etildi",
       viewOrders:"Buyurtmalarimga o'tish",tgAcc:"Telegram akkauntingiz"},
-  ru:{all:"Все",kiyim:"Одежда",elektr:"Электроника",uy:"Для дома",sale:"Скидки",add:"В корзину",choose:"Выбрать",cart:"Корзина",
+  ru:{all:"Все",sale:"Скидки",add:"В корзину",choose:"Выбрать",cart:"Корзина",
       empty:"Корзина пуста",total:"Итого",order:"Оформить заказ",back:"← Назад",sum:"сум",
       delivery:"Доставка",name:"Ваше имя",phone:"Номер телефона",region:"Область",city:"Город / район",
       post:"Ближайшее отделение Uzpost",next:"Перейти к оплате",pay:"Оплата",
@@ -305,7 +305,13 @@ function toast(msg){
 function setLang(l){ lang = l; lsSet("lang", l); savePref({lang:l}); render(); }
 function toggleTheme(){ theme = theme === "dark" ? "light" : "dark"; lsSet("theme", theme); applyTheme(); savePref({theme}); render(); }
 function showFavs(){ go("favs"); }
-function setCat(c){ cat = c; render(); }
+function setCat(c){
+  cat = c;
+  document.querySelectorAll(".cats .chip").forEach(b => b.classList.toggle("on", b.dataset.c === c));
+  const g = document.getElementById("grid"); if(g) g.innerHTML = gridHtml();
+}
+let catsLeft = 0;
+const catLabel = c => (T[lang][c] && c !== "cat") ? t(c) : ((cfg.cats || []).find(x => x.k === c) || {})[lang] || c;
 /* ---------- orqaga qaytish (tugma, telefon chetidan surish) ---------- */
 let stk = [], hist = 0, ignorePop = 0, lb = null;
 function setView(v){
@@ -481,10 +487,10 @@ function cartBar(){
 }
 
 function shop(){
-  const cats = ["all","kiyim","elektr","uy","sale"];
-  const chips = cats.map(c=>`<button class="chip ${cat===c?'on':''}" onclick="setCat('${c}')">${t(c)}</button>`).join("");
+  const cats = ["all", ...(cfg.cats || []).map(x => x.k), "sale"];
+  const chips = cats.map(c=>`<button class="chip ${cat===c?'on':''}" data-c="${c}" onclick="setCat('${c}')">${esc(catLabel(c))}</button>`).join("");
   return header() + `<div class="sub"><div class="search"><span class="mg">${ic("search",17)}</span><input id="q" type="search" placeholder="${esc(t("search"))}" value="${esc(q)}" oninput="setQ(this.value)"></div>
-  <div class="cats">${chips}</div></div><div id="grid">${gridHtml()}</div>` + cartBar() + nav();
+  <div class="cats" onscroll="catsLeft=this.scrollLeft">${chips}</div></div><div id="grid">${gridHtml()}</div>` + cartBar() + nav();
 }
 
 function cartView(){
@@ -639,6 +645,7 @@ function favsView(){
 function render(){
   const v = {shop,product:productView,cart:cartView,checkout,pay,done,orders:ordersView,profile:profileView,support:supportView,favs:favsView}[view];
   document.getElementById("app").innerHTML = v();
+  const cs = document.querySelector(".cats"); if(cs) cs.scrollLeft = catsLeft;
   updateBB();
 }
 render();

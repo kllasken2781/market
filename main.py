@@ -38,7 +38,17 @@ if DB_URL.startswith("postgres://"):
 if DB_URL.startswith("postgresql://"):
     DB_URL = DB_URL.replace("postgresql://", "postgresql+psycopg://", 1)   # psycopg 3 drayveri
 
-CATS = {"kiyim", "elektr", "uy"}
+# Kategoriyalar. Yangisini qo'shish yoki nomini o'zgartirish: shu ro'yxatni tahrirlang.
+CATEGORIES = [
+    {"k": "arduino",  "uz": "Arduino",  "ru": "Arduino"},
+    {"k": "batareya", "uz": "Batareya", "ru": "Батарейки"},
+    {"k": "knopka",   "uz": "Knopka",   "ru": "Кнопки"},
+    {"k": "rele",     "uz": "Rele",     "ru": "Реле"},
+    {"k": "modul",    "uz": "Modul",    "ru": "Модули"},
+    {"k": "led",      "uz": "Led",      "ru": "Светодиоды"},
+]
+CATS = {c["k"] for c in CATEGORIES}
+OLD_CATS = ("kiyim", "elektr", "uy")       # eski kategoriyalar: ishga tushganda "modul" ga o'tkaziladi
 MAX_IMAGES = 6
 
 
@@ -172,6 +182,8 @@ def migrate():
                 c.execute(sql_text(f"ALTER TABLE products ADD COLUMN {name} TEXT"))
         if "sold_out" not in cols:
             c.execute(sql_text("ALTER TABLE products ADD COLUMN sold_out BOOLEAN DEFAULT FALSE"))
+    with engine.begin() as c:
+        c.execute(update(products).where(products.c.cat.in_(OLD_CATS)).values(cat="modul"))
     ocols = {c["name"] for c in inspect(engine).get_columns("orders")}
     with engine.begin() as c:
         if "ship" not in ocols:
@@ -535,7 +547,7 @@ async def webhook(secret: str, request: Request):
 # ---------- ommaviy ----------
 @app.get("/api/config")
 def api_config():
-    return {"card": CARD, "owner": CARD_OWNER, "support": SUPPORT, "social": SOCIAL, "stages": STAGES}
+    return {"card": CARD, "owner": CARD_OWNER, "support": SUPPORT, "social": SOCIAL, "stages": STAGES, "cats": CATEGORIES}
 
 
 @app.get("/api/products")

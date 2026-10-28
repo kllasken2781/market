@@ -78,7 +78,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--or);border-color
 const tg = window.Telegram && window.Telegram.WebApp;
 if (tg) { tg.ready(); tg.expand(); }
 
-const CATS = {kiyim:"Kiyim", elektr:"Elektronika", uy:"Uy-ro'zg'or"};
+let CATS = {};
 const STATUS = {wait_receipt:"Chek kutilmoqda", checking:"Tekshirilmoqda", paid:"To'langan", rejected:"Rad etilgan"};
 const MAXIMG = 6;
 let tab = "products", list = [], ords = [], stages = [], f = null, saving = false, denied = "", opening = false;
@@ -102,7 +102,11 @@ async function api(path, method="GET", body){
 async function loadAll(){
   try{
     [list, ords] = await Promise.all([api("/api/admin/products"), api("/api/admin/orders")]);
-    try{ stages = (await (await fetch("/api/config")).json()).stages || []; }catch(e){}
+    try{
+      const cf = await (await fetch("/api/config")).json();
+      stages = cf.stages || [];
+      CATS = {}; (cf.cats || []).forEach(c => CATS[c.k] = c.uz);
+    }catch(e){}
   }catch(e){
     denied = e.status === 403 ? "Sizda ruxsat yo'q." : (e.status === 401 ? "Admin panelni botdagi /admin buyrug'i orqali, Telegram ichida oching." : "Xatolik: " + e.message);
   }
@@ -170,13 +174,13 @@ function listView(){
   const rows = list.map(p=>`<div class="item" onclick="edit(${p.id})">
     <div class="thumb">${p.img?`<img src="${p.img}" alt="">`:"📦"}</div>
     <div class="mid"><div class="nm">${esc(p.name_uz)}${p.active?"":'<span class="tag">yashirin</span>'}${p.sold_out?'<span class="tag">tugadi</span>':""}</div>
-    <div class="sub">${CATS[p.cat]} · sotuv ${money(p.price)}</div>
+    <div class="sub">${CATS[p.cat] || p.cat} · sotuv ${money(p.price)}</div>
     <div class="sub">foyda: <span class="${p.profit>=0?'profit':'loss'}">${money(p.profit)}</span></div></div></div>`).join("");
   return tabs + `<div class="wrap">${rows || '<div class="msg">Hali mahsulot yo\'q. Pastdagi tugma bilan qo\'shing.</div>'}</div>
     <button class="fab" onclick="edit(0)">+ Mahsulot qo'shish</button>`;
 }
 
-const blank = () => ({id:0, name_uz:"", name_ru:"", cat:"kiyim", cost:"", price:"", old_price:"", active:true,
+const blank = () => ({id:0, name_uz:"", name_ru:"", cat:Object.keys(CATS)[0]||"modul", cost:"", price:"", old_price:"", active:true,
                       desc_uz:"", desc_ru:"", sizes:"", colors:"", sold_out:false, images:[]});
 
 async function edit(id){
